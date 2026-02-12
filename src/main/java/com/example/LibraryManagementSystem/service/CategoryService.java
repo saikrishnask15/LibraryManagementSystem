@@ -1,0 +1,133 @@
+package com.example.LibraryManagementSystem.service;
+
+import com.example.LibraryManagementSystem.dto.categoryDTO.CategoryRequest;
+import com.example.LibraryManagementSystem.dto.categoryDTO.CategoryResponse;
+import com.example.LibraryManagementSystem.dto.mapper.CategoryMapper;
+import com.example.LibraryManagementSystem.exception.ResourceNotFoundException;
+import com.example.LibraryManagementSystem.model.Book;
+import com.example.LibraryManagementSystem.model.Category;
+import com.example.LibraryManagementSystem.repository.BookRepository;
+import com.example.LibraryManagementSystem.repository.CategoryRepository;
+import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+
+@Service
+public class CategoryService {
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private BookRepository bookRepository;
+
+    @Autowired
+    private CategoryMapper categoryMapper;
+
+    public List<CategoryResponse> getAllCategories() {
+        return categoryMapper.toResponseList(categoryRepository.findAll());
+    }
+
+    public CategoryResponse getCategoryById(Integer categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(()-> new ResourceNotFoundException("Category","id",categoryId));
+        return categoryMapper.toResponse(category);
+    }
+
+    @Transactional
+    public CategoryResponse addCategory(CategoryRequest request) {
+
+        // Creating category entity
+        //using mapper to convert DTO to entity
+        Category category = categoryMapper.toEntity(request);
+
+        // IMPORTANT: Save category FIRST to get the ID
+        Category savedCategory = categoryRepository.save(category);
+
+        if (request.getBookIds() != null && !request.getBookIds().isEmpty()) {
+            List<Book> newBooks = bookRepository.findAllById(request.getBookIds());
+
+            // Validate all books exist
+            if (newBooks.size() != request.getBookIds().size()) {
+                throw new ResourceNotFoundException("One or more books not found");
+            }
+
+            // Adding category to books (owning side)
+            for (Book book : newBooks) {
+                if (!book.getCategories().contains(savedCategory)) {
+                    book.getCategories().add(savedCategory);
+                }
+            }
+            // saving the books to update in join table
+            bookRepository.saveAll(newBooks);
+
+            savedCategory.setBooks(newBooks);
+        }
+        return categoryMapper.toResponse(savedCategory);
+    }
+
+    @Transactional
+    public CategoryResponse updateCategory(Integer categoryId, CategoryRequest request) {
+
+        Category existingCategory = categoryRepository.findById(categoryId)
+                .orElseThrow(()-> new ResourceNotFoundException("Category","id",categoryId));
+
+        if(request.getName() != null){
+            existingCategory.setName(request.getName());
+        }
+        if(request.getDescription() != null){
+            existingCategory.setDescription(request.getDescription());
+        }
+        //&& !request.getBookIds().isEmpty()
+        if(request.getBookIds() != null ){
+
+            // Removing old links (Owning side)
+            if (existingCategory.getBooks() != null && !existingCategory.getBooks().isEmpty()) {
+                for (Book oldBook : existingCategory.getBooks()) {
+                    oldBook.getCategories().remove(existingCategory);
+                }
+                bookRepository.saveAll(existingCategory.getBooks());
+            }
+
+            // Adding category to new books (if any provided)
+            if (!request.getBookIds().isEmpty()) {
+                List<Book> newBooks = bookRepository.findAllById(request.getBookIds());
+
+                // Validate all books exist
+                if (newBooks.size() != request.getBookIds().size()) {
+                    throw new ResourceNotFoundException("One or more books not found");
+                }
+
+                // Adding new links (Owning side)
+                for (Book book : newBooks) {
+                    if (!book.getCategories().contains(existingCategory)) {
+                        book.getCategories().add(existingCategory);
+                    }
+                }
+                bookRepository.saveAll(newBooks); // Updating owners
+                existingCategory.setBooks(newBooks);
+            }else{
+                existingCategory.setBooks(null);
+            }
+        }
+        Category savedCategory = categoryRepository.save(existingCategory);
+        return categoryMapper.toResponse(savedCategory);
+    }
+
+    @Transactional
+    public void deleteCategory(Integer categoryId) {
+       Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(()-> new ResourceNotFoundException("Category","id",categoryId));
+
+        for(Book book: category.getBooks()){
+            book.getCategories().remove(category);
+        }
+        //saving in book side
+        bookRepository.saveAll(category.getBooks());
+        categoryRepository.delete(category);
+    }
+}
