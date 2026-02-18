@@ -29,7 +29,7 @@ public class MemberService {
     private MemberMapper memberMapper;
 
     public List<MemberResponse> getAllMembers() {
-       return memberMapper.toReponseList(memberRepository.findAll());
+       return memberMapper.toResponseList(memberRepository.findAll());
     }
 
     public MemberResponse getMemberById(Integer memberId) {
@@ -56,11 +56,10 @@ public class MemberService {
         Member existingMember = memberRepository.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member","id",memberId));
 
-        if(request.getEmail() != null){
+        if(request.getEmail() != null && !request.getEmail().equals(existingMember.getEmail())){
             if(memberRepository.existsByEmail(request.getEmail())){
                 throw new ResourceAlreadyExistsException("Member", "email", request.getEmail());
             }
-            existingMember.setEmail(request.getEmail());
         }
 
         //using mapper to convert requestDTO into entity

@@ -123,11 +123,13 @@ public class CategoryService {
        Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(()-> new ResourceNotFoundException("Category","id",categoryId));
 
-        for(Book book: category.getBooks()){
-            book.getCategories().remove(category);
+        if (category.getBooks() != null && !category.getBooks().isEmpty()) {
+            for (Book book : category.getBooks()) {
+                book.getCategories().remove(category);
+            }
+            //saving in book side
+            bookRepository.saveAll(category.getBooks());
         }
-        //saving in book side
-        bookRepository.saveAll(category.getBooks());
         categoryRepository.delete(category);
     }
 }

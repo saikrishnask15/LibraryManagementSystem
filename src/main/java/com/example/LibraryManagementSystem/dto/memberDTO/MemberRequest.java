@@ -1,6 +1,7 @@
 package com.example.LibraryManagementSystem.dto.memberDTO;
 
 import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
+import com.example.LibraryManagementSystem.model.MembershipType;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -26,5 +27,7 @@ public class MemberRequest {
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits",
             groups = {ValidateGroups.Create.class, ValidateGroups.Update.class})
     private String phone;
+
+    private MembershipType membershipType;
 
 }

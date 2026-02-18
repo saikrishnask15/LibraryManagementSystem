@@ -4,6 +4,7 @@ import com.example.LibraryManagementSystem.model.BorrowRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,4 +25,10 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Long
     boolean existsByBookIdAndStatusNot(Integer bookId, BorrowRecord.BorrowStatus borrowStatus);
 
     Integer countByMemberIdAndIsArchivedFalse(Integer memberId);
+
+    boolean existsByMemberIdAndBookIdAndStatusAndIsArchivedFalse(Integer memberId, Integer bookId, BorrowRecord.BorrowStatus borrowStatus);
+
+    Long countByMemberIdAndStatusAndIsArchivedFalse(Integer memberId, BorrowRecord.BorrowStatus borrowStatus);
+
+    List<BorrowRecord> findByStatusAndDueDateBefore(BorrowRecord.BorrowStatus borrowStatus, LocalDate date);
 }

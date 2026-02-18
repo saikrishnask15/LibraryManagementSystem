@@ -33,6 +33,11 @@ public class BookRequest {
 
     private Boolean available = true;
 
+    @NotNull(message = "Total copies is required", groups = ValidateGroups.Create.class)
+    @Min(value = 1, message = "Total copies must be at least 1",
+            groups = {ValidateGroups.Update.class, ValidateGroups.Create.class})
+    private Integer totalCopies;
+
     @NotNull(message = "Author ID is required", groups = ValidateGroups.Create.class)
     private Integer authorId;
 

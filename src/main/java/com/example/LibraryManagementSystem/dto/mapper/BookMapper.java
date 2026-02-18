@@ -19,6 +19,8 @@ public class BookMapper {
                 .isBn(request.getIsBn())
                 .publishedYear(request.getPublishedYear())
                 .available(request.getAvailable() != null ? request.getAvailable() : true)
+                .totalCopies(request.getTotalCopies() != null ? request.getTotalCopies() : 1)
+                .availableCopies(request.getTotalCopies() != null ? request.getTotalCopies() : 1)
                 .author(author)
                 .build();
     }
@@ -30,9 +32,7 @@ public class BookMapper {
         if(request.getPublishedYear() != null){
             exisitingBook.setPublishedYear(request.getPublishedYear());
         }
-        if(request.getAvailable() != null){
-            exisitingBook.setAvailable(request.getAvailable());
-        }
+
         if(request.getAuthorId() != null){
             exisitingBook.setAuthor(author);
         }
@@ -49,7 +49,9 @@ public class BookMapper {
                 .isBn(book.getIsBn())
                 .publishedYear(book.getPublishedYear())
                 .available(book.getAvailable())
-                .categoryNames(extractCategoryDTOs(book.getCategories()))
+                .totalCopies(book.getTotalCopies())
+                .availableCopies(book.getAvailableCopies())
+                .categories(extractCategoryDTOs(book.getCategories()))
                 .build();
     }
 

@@ -102,6 +102,12 @@ public class BookService {
         // exisitingBook.setAuthor(author);
         }
 
+        if (request.getTotalCopies() != null && request.getTotalCopies() > exisitingBook.getTotalCopies()){
+            int addedCopies = request.getTotalCopies() - exisitingBook.getTotalCopies();
+            exisitingBook.setAvailableCopies(exisitingBook.getTotalCopies() + addedCopies);
+            exisitingBook.setTotalCopies(request.getTotalCopies());
+            exisitingBook.setAvailable(true);
+        }
 
         //using mapper to update convert DTO to entity
         bookMapper.updateEntityFromRequest(exisitingBook, request, author);

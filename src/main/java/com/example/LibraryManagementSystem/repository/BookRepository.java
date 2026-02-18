@@ -7,5 +7,4 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BookRepository extends JpaRepository<Book, Integer> {
     boolean existsByIsBn(String isBn);
-    Integer countByAuthorIdAndAvailableTrue(Integer authorId);
 }

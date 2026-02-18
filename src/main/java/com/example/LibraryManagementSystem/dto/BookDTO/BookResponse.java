@@ -18,7 +18,9 @@ public class BookResponse {
     private String isBn;
     private Integer publishedYear;
     private Boolean available;
-    private List<CategoryDTO> categoryNames;
+    private Integer totalCopies;
+    private Integer availableCopies;
+    private List<CategoryDTO> categories;
 
     @Data
     @NoArgsConstructor

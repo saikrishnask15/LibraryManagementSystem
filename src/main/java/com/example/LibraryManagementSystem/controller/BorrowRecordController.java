@@ -57,9 +57,8 @@ public class BorrowRecordController {
 
     //patch is used for partial update
     @PatchMapping("/{borrowRecordId}/return")
-    public ResponseEntity<BorrowRecordResponse> processReturn(@PathVariable @Min(value = 1, message = "Id must be greater than 0") Long borrowRecordId,
-                                                              @Validated(ValidateGroups.Update.class) @RequestBody BorrowRecordRequest borrowRecordRequest){
-        return ResponseEntity.ok(borrowRecordService.processReturn(borrowRecordId, borrowRecordRequest));
+    public ResponseEntity<BorrowRecordResponse> processReturn(@PathVariable @Min(value = 1, message = "Id must be greater than 0") Long borrowRecordId){
+        return ResponseEntity.ok(borrowRecordService.processReturn(borrowRecordId));
     }
 
     @PatchMapping("/{borrowRecordId}/archive")

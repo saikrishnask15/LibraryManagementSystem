@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -32,46 +33,7 @@ public class Category {
 
     @ManyToMany(mappedBy = "categories")
     @JsonIgnoreProperties("categories")
-    private List<Book> books;
+    @Builder.Default
+    private List<Book> books = new ArrayList<>();
 
-//    public Category(){}
-//
-//    public Category(Integer id, String name, String description, List<Book> books) {
-//        this.id = id;
-//        this.name = name;
-//        this.description = description;
-//        this.books = books;
-//    }
-
-//    public Integer getId() {
-//        return id;
-//    }
-//
-//    public void setId(Integer id) {
-//        this.id = id;
-//    }
-//
-//    public String getName() {
-//        return name;
-//    }
-//
-//    public void setName(String name) {
-//        this.name = name;
-//    }
-//
-//    public String getDescription() {
-//        return description;
-//    }
-//
-//    public void setDescription(String description) {
-//        this.description = description;
-//    }
-//
-//    public List<Book> getBooks() {
-//        return books;
-//    }
-//
-//    public void setBooks(List<Book> books) {
-//        this.books = books;
-//    }
 }

@@ -15,7 +15,6 @@ import lombok.NoArgsConstructor;
 public class AuthorRequest {
 
     @NotBlank(groups = ValidateGroups.Create.class, message = "Author name is required")
-    @NotNull(groups = ValidateGroups.Create.class, message = "Author name cannot be null")
     @Size(min = 3, max = 50, message = "Author name must be between 3 and 50 characters",
             groups = {ValidateGroups.Create.class, ValidateGroups.Update.class})
     private String name;
@@ -24,7 +23,7 @@ public class AuthorRequest {
             groups = {ValidateGroups.Create.class, ValidateGroups.Update.class})
     private String email;
 
-    @Size(max = 100, message = "Bio must not exceed 1000 characters",
+    @Size(max = 100, message = "Bio must not exceed 100 characters",
             groups = {ValidateGroups.Create.class, ValidateGroups.Update.class})
     private String bio;
 }

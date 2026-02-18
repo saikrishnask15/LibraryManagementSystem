@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -39,9 +40,14 @@ public class BorrowRecord {
 
     private LocalDate dueDate;
 
-    private LocalDateTime returnDate = null;
+    @Column(nullable = false, precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal lateFee = BigDecimal.ZERO;
+
+    private LocalDateTime returnDate;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private BorrowStatus status = BorrowStatus.ACTIVE;
 
     @Column(name = "is_archived", nullable = false)
@@ -74,6 +80,33 @@ public class BorrowRecord {
         if (isArchived == null) {
             isArchived = false;
         }
+        if (this.lateFee == null) {
+            this.lateFee = BigDecimal.ZERO;
+        }
     }
+
+    // Marks record as OVERDUE and calculates late fee
+    public void markOverDue(){
+        this.status = BorrowStatus.OVERDUE;
+        this.lateFee = calculateLateFee();
+    }
+
+    public BigDecimal calculateLateFee() {
+
+        if (dueDate == null) return BigDecimal.ZERO;
+
+        if (this.status == BorrowStatus.RETURNED) {
+            return this.lateFee;
+        }
+
+        if (dueDate.isBefore(LocalDate.now())) {
+            long daysOverdue = java.time.temporal.ChronoUnit.DAYS
+                    .between(dueDate, LocalDate.now());
+
+            return BigDecimal.valueOf(daysOverdue); // 1 per day
+        }
+        return BigDecimal.ZERO;
+    }
+
 
 }

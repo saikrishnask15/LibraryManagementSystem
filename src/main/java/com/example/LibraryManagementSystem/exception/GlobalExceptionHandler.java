@@ -137,6 +137,43 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(BookNotAvailableException.class)
+    public  ResponseEntity<ErrorResponse> handleBookNotAvailableException(RuntimeException ex, WebRequest request){
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "Books Not Available",
+                ex.getMessage(),
+                request.getDescription(false)
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(DuplicateBorrowException.class)
+    public  ResponseEntity<ErrorResponse> handleDuplicateBorrowException(RuntimeException ex, WebRequest request){
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "Duplicate Books Not Allowed",
+                ex.getMessage(),
+                request.getDescription(false)
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(BorrowLimitExceededException.class)
+    public  ResponseEntity<ErrorResponse> handleBorrowLimitExceededException(RuntimeException ex, WebRequest request){
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                "Borrow Limit Exceeded",
+                ex.getMessage(),
+                request.getDescription(false)
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+
     @ExceptionHandler(ConflictException.class)
     public  ResponseEntity<ErrorResponse> handleConflictException(RuntimeException ex, WebRequest request){
         ErrorResponse errorResponse = new ErrorResponse(

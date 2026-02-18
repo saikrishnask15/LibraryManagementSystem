@@ -1,5 +1,6 @@
 package com.example.LibraryManagementSystem.dto.memberDTO;
 
+import com.example.LibraryManagementSystem.model.MembershipType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,5 +18,10 @@ public class MemberResponse {
     private String email;
     private String phone;
     private LocalDate membershipDate;
+
+    private MembershipType membershipType;
+    private Integer maxBooksAllowed;
+    private Integer borrowPeriodDays;
     private Integer activeBorrowCount;
+
 }

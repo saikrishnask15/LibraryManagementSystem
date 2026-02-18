@@ -35,7 +35,14 @@ public class Book {
     private Integer publishedYear;
 
     @Column(name = "available")
+    @Builder.Default
     private Boolean available = true;
+
+    @Column(name = "total_copies")
+    private Integer totalCopies;
+
+    @Column(name = "available_copies")
+    private Integer availableCopies;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "authorId")

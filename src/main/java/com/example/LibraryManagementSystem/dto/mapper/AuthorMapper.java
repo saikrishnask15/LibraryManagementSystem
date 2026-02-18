@@ -5,16 +5,15 @@ import com.example.LibraryManagementSystem.dto.authorDTO.AuthorResponse;
 import com.example.LibraryManagementSystem.model.Author;
 
 import com.example.LibraryManagementSystem.repository.BookRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
 public class AuthorMapper {
-
-    @Autowired
-    private BookRepository bookRepository;
 
     public Author toEntity(AuthorRequest request){
         return Author.builder()
@@ -24,7 +23,7 @@ public class AuthorMapper {
                 .build();
     }
 
-    public void UpdateEntityFromRequest(Author author, AuthorRequest request){
+    public void updateEntityFromRequest(Author author, AuthorRequest request){
         if(request.getName() != null){
             author.setName(request.getName());
         }
@@ -37,19 +36,22 @@ public class AuthorMapper {
     }
 
     public AuthorResponse toResponse(Author author){
+        if (author == null) {
+            return null;
+        }
         return AuthorResponse.builder()
                 .id(author.getId())
                 .name(author.getName())
                 .email(author.getEmail())
                 .bio(author.getBio())
-                .bookCount(extractBookCount(author.getId()))
+                .bookCount(author.getBooks() != null ? author.getBooks().size() : 0)
                 .build();
-    }
-    private Integer extractBookCount(Integer id){
-        return bookRepository.countByAuthorIdAndAvailableTrue(id);
     }
 
     public List<AuthorResponse> toResponseList(List<Author> authors){
+        if (authors == null || authors.isEmpty()) {
+            return new ArrayList<>();
+        }
         return authors.stream()
                 .map(this::toResponse)
                 .toList();

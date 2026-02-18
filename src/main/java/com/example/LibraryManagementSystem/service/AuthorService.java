@@ -8,6 +8,7 @@ import com.example.LibraryManagementSystem.exception.ResourceAlreadyExistsExcept
 import com.example.LibraryManagementSystem.exception.ResourceNotFoundException;
 import com.example.LibraryManagementSystem.model.Author;
 import com.example.LibraryManagementSystem.repository.AuthorRepository;
+import com.example.LibraryManagementSystem.repository.BookRepository;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,9 @@ public class AuthorService {
 
     @Autowired
     private AuthorMapper authorMapper;
+
+    @Autowired
+    private BookRepository bookRepository;
 
     public List<AuthorResponse> getAllAuthors() {
         return authorMapper.toResponseList(authorRepository.findAll());
@@ -48,6 +52,7 @@ public class AuthorService {
         Author author = authorMapper.toEntity(request);
 
         Author savedAuthor = authorRepository.save(author);
+
         return authorMapper.toResponse(savedAuthor);
     }
 
@@ -64,7 +69,7 @@ public class AuthorService {
 
         }
         //using mapper to update entity from DTO
-        authorMapper.UpdateEntityFromRequest(exisitingAuthor, request);
+        authorMapper.updateEntityFromRequest(exisitingAuthor, request);
 
         Author author = authorRepository.save(exisitingAuthor);
         return authorMapper.toResponse(author);
@@ -74,7 +79,7 @@ public class AuthorService {
     public void deleteAuthor(Integer authorId) {
         Author author = authorRepository.findById(authorId)
                 .orElseThrow(()->  new ResourceNotFoundException("Author","id",authorId));
-        if(!author.getBooks().isEmpty()) {
+        if (author.getBooks() != null && !author.getBooks().isEmpty()) {
             throw new ConflictException("Cannot delete author with existing books");
         }
          authorRepository.delete(author);

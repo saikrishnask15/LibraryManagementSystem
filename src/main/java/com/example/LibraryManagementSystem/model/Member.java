@@ -32,7 +32,7 @@ public class Member {
     private String email;
 
     @Column(name = "phone")
-    private String Phone;
+    private String phone;
 
     @CreationTimestamp
     @Column(name = "membershipDate", updatable = false)
@@ -42,5 +42,20 @@ public class Member {
     @JsonIgnoreProperties("member")
     private List<BorrowRecord> borrowRecords;
 
+    @Column(name = "membership_type)", nullable = false)
+    private MembershipType membershipType;
 
+    @PrePersist void onCreate(){
+        if (membershipType == null){
+            membershipType = MembershipType.BASIC;
+        }
+    }
+
+    public Integer getMaxBooksAllowed(){
+        return membershipType.getMaxBooksAllowed();
+    }
+
+    public Integer getBorrowPeriodDays(){
+        return membershipType.getBorrowPeriodDays();
+    }
 }

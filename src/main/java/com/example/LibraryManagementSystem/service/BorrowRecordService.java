@@ -3,15 +3,14 @@ package com.example.LibraryManagementSystem.service;
 import com.example.LibraryManagementSystem.dto.borrowRecordDTO.BorrowRecordRequest;
 import com.example.LibraryManagementSystem.dto.borrowRecordDTO.BorrowRecordResponse;
 import com.example.LibraryManagementSystem.dto.mapper.BorrowRecordMapper;
-import com.example.LibraryManagementSystem.exception.ActiveBorrowExistsException;
-import com.example.LibraryManagementSystem.exception.ConflictException;
-import com.example.LibraryManagementSystem.exception.ResourceNotFoundException;
+import com.example.LibraryManagementSystem.exception.*;
 import com.example.LibraryManagementSystem.model.Book;
 import com.example.LibraryManagementSystem.model.BorrowRecord;
 import com.example.LibraryManagementSystem.model.Member;
 import com.example.LibraryManagementSystem.repository.BookRepository;
 import com.example.LibraryManagementSystem.repository.BorrowRecordRepository;
 import com.example.LibraryManagementSystem.repository.MemberRepository;
+import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -48,38 +48,73 @@ public class BorrowRecordService {
         return borrowRecordMapper.toResponse(borrowRecord);
     }
 
+@Transactional
     public BorrowRecordResponse addBorrowRecord(BorrowRecordRequest request) {
+
+        //checking members
+        if (request.getMemberId() == null) {
+            throw new ResourceNotFoundException("Member details are missing");
+        }
+        //checking books
+        if (request.getBookId() == null) {
+            throw new ResourceNotFoundException("Book details are missing");
+        }
+
+        //fetching member
+        Member member = memberRepository.findById(request.getMemberId())
+            .orElseThrow(() -> new ResourceNotFoundException("Member", "id", request.getMemberId()));
+
+        //Validating borrow limit based on membership tier
+        validatingBorrowingLimit(member);
+
+        //fetching books
+        Book book = bookRepository.findById(request.getBookId())
+            .orElseThrow(() -> new ResourceNotFoundException("Book", "id", request.getBookId()));
+
+        //checking book availability
+        if (!book.getAvailable() || book.getAvailableCopies() <= 0) {
+            throw new BookNotAvailableException("No copies available");
+        }
+
+        //Check if member already has this book active
+        boolean alreadyBorrowed = borrowRecordRepository.existsByMemberIdAndBookIdAndStatusAndIsArchivedFalse(
+                request.getMemberId(),
+                request.getBookId(),
+                BorrowRecord.BorrowStatus.ACTIVE
+        );
+
+        if (alreadyBorrowed) {
+            throw new DuplicateBorrowException("Member already has an active borrow for '" + book.getTitle() + "'");
+        }
+
         //using mapper to convert requestDTO to entity
         BorrowRecord borrowRecord = borrowRecordMapper.toEntity(request);
 
-        //checking members
-        if(borrowRecord.getMember() != null && borrowRecord.getMember().getId() != null){
-            Integer memberId = borrowRecord.getMember().getId();
+        //setting member, books, DueDate
+        borrowRecord.setMember(member);
+        borrowRecord.setBook(book);
+        borrowRecord.setDueDate(LocalDate.now().plusDays(member.getBorrowPeriodDays()));
 
-            Member member = memberRepository.findById(memberId)
-                    .orElseThrow(()-> new ResourceNotFoundException("Member","id",memberId));
-            borrowRecord.setMember(member);
-        }else{
-            throw new ResourceNotFoundException("Member details are missing");
+        //if available decrementing
+        book.setAvailableCopies(book.getAvailableCopies() - 1);
+        if(book.getAvailableCopies() == 0){
+            book.setAvailable(false);
         }
+        bookRepository.save(book);
 
-        //checking books
-        if(borrowRecord.getBook() != null && borrowRecord.getBook().getId() != null){
-            Integer bookId = borrowRecord.getBook().getId();
-
-            Book book = bookRepository.findById(bookId)
-                    .orElseThrow(()-> new ResourceNotFoundException("Book","id",bookId));
-            borrowRecord.setBook(book);
-        }else{
-            throw new ResourceNotFoundException("Book details are missing");
-        }
         BorrowRecord savedBorrowRecord =  borrowRecordRepository.save(borrowRecord);
         return borrowRecordMapper.toResponse(savedBorrowRecord);
     }
 
+    @Transactional
     public BorrowRecordResponse updateBorrowRecord(Long borrowRecordId, BorrowRecordRequest borrowRecordRequest) {
         BorrowRecord existingRecord = borrowRecordRepository.findById(borrowRecordId)
                 .orElseThrow(()-> new ResourceNotFoundException("BorrowRecord","id",borrowRecordId));
+
+        //not allowing updating a RETURNED record
+        if (existingRecord.getStatus() == BorrowRecord.BorrowStatus.RETURNED) {
+            throw new ConflictException("Cannot update a returned borrow record");
+        }
 
         if(borrowRecordRequest.getMemberId() != null){
             Member member = memberRepository.findById(borrowRecordRequest.getMemberId())
@@ -93,30 +128,36 @@ public class BorrowRecordService {
             existingRecord.setBook(book);
         }
 
-        if(borrowRecordRequest.getStatus() == BorrowRecord.BorrowStatus.RETURNED){
-            existingRecord.setReturnDate(LocalDateTime.now());
-            existingRecord.setStatus(BorrowRecord.BorrowStatus.RETURNED);
-        }
         BorrowRecord savedBorrowRecord =  borrowRecordRepository.save(existingRecord);
         return borrowRecordMapper.toResponse(savedBorrowRecord);
     }
 
-    public BorrowRecordResponse processReturn(Long borrowRecordId, BorrowRecordRequest borrowRecordRequest) {
+    @Transactional
+    public BorrowRecordResponse processReturn(Long borrowRecordId) {
         BorrowRecord existingRecord = borrowRecordRepository.findById(borrowRecordId)
                 .orElseThrow(()-> new ResourceNotFoundException("BorrowRecord","id",borrowRecordId));
 
+        if(existingRecord.getStatus() == BorrowRecord.BorrowStatus.RETURNED) {
+            throw new ConflictException("This book has already been returned");
+        }
 
-        if(borrowRecordRequest.getStatus() == BorrowRecord.BorrowStatus.RETURNED){
+            Book book = existingRecord.getBook();
             existingRecord.setReturnDate(LocalDateTime.now());
             existingRecord.setStatus(BorrowRecord.BorrowStatus.RETURNED);
-        }
+
+            book.setAvailableCopies(book.getAvailableCopies() + 1);
+            if(book.getAvailableCopies() > 0){
+                book.setAvailable(true);
+            }
+            bookRepository.save(book);
+
         BorrowRecord savedBorrowRecord =  borrowRecordRepository.save(existingRecord);
         return borrowRecordMapper.toResponse(savedBorrowRecord);
     }
 
     public BorrowRecordResponse archiveBorrowRecord(Long id, String archivedBy, String reason){
         BorrowRecord borrowRecord = borrowRecordRepository.findById(id)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                .orElseThrow(()-> new ResourceNotFoundException("BorrowRecord", "id", id));
 
         if(borrowRecord.getIsArchived()){
             throw new ConflictException("BorrowRecord is already archived");
@@ -136,13 +177,13 @@ public class BorrowRecordService {
 
     public void deleteBorrowRecord(Long borrowRecordId) {
         BorrowRecord borrowRecord = borrowRecordRepository.findById(borrowRecordId)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                .orElseThrow(()-> new ResourceNotFoundException("BorrowRecord", "id", borrowRecordId));
+
         if(borrowRecord.getStatus() != BorrowRecord.BorrowStatus.RETURNED){
-            throw new ActiveBorrowExistsException( "\"Cannot delete active borrow record. \" +\n" +
-                    "\"Please return the book first.\"");
+            throw new ActiveBorrowExistsException( "Cannot delete active borrow record. Please return the book first.");
         }
         if(!borrowRecord.getIsArchived()){
-            throw new ConflictException("BorrowRecord is cannot be deleted, only archived book is deleted");
+            throw new ConflictException("BorrowRecord cannot be deleted. Only archived records can be deleted.");
         }
         borrowRecordRepository.delete(borrowRecord);
     }
@@ -154,6 +195,25 @@ public class BorrowRecordService {
         return borrowRecordMapper.toResponseList(borrowRecordRepository.findByIsArchivedFalse());
     }
 
+    //helping methods
+    private void validatingBorrowingLimit(Member member){
+        Long activeBorrows = borrowRecordRepository.countByMemberIdAndStatusAndIsArchivedFalse(
+                member.getId(),
+                BorrowRecord.BorrowStatus.ACTIVE
+        );
 
+        if (activeBorrows >= member.getMaxBooksAllowed()){
+            throw new BorrowLimitExceededException(member.getMaxBooksAllowed(), member.getMembershipType().name());
+        }
+    }
+
+    //scheduler calls for every 1  hour
+    @Transactional
+    public void markOverdueRecords(){
+        List<BorrowRecord> activeRecords  = borrowRecordRepository.
+                findByStatusAndDueDateBefore(BorrowRecord.BorrowStatus.ACTIVE, LocalDate.now());
+        activeRecords.forEach(BorrowRecord::markOverDue);
+        borrowRecordRepository.saveAll(activeRecords);
+    }
 }
 

@@ -14,22 +14,17 @@ public class BorrowRecordMapper {
 
     public BorrowRecord toEntity(BorrowRecordRequest borrowRecordRequest){
         return BorrowRecord.builder()
-                .member(Member.builder().id(borrowRecordRequest.getMemberId()).build())
-                .book(Book.builder().id(borrowRecordRequest.getBookId()).build())
-                .status(borrowRecordRequest.getStatus())
-                .isArchived(borrowRecordRequest.getIsArchived())
-                .archivedBy(borrowRecordRequest.getArchivedBy())
-                .archiveReason(borrowRecordRequest.getArchiveReason())
+                .status(BorrowRecord.BorrowStatus.ACTIVE)
+                .isArchived(false)
                 .build();
     }
-
 
 
     public BorrowRecordResponse toResponse(BorrowRecord borrowRecord){
         return BorrowRecordResponse.builder()
                 .id(borrowRecord.getId())
-                .member(extractMembers(borrowRecord.getMember()))
-                .book(extractBooks(borrowRecord.getBook()))
+                .member(borrowRecord.getMember() != null ? extractMembers(borrowRecord.getMember()) : null)
+                .book(borrowRecord.getBook() != null ? extractBooks(borrowRecord.getBook()) : null)
                 .borrowDate(borrowRecord.getBorrowDate())
                 .dueDate(borrowRecord.getDueDate())
                 .returnDate(borrowRecord.getReturnDate())
@@ -48,7 +43,6 @@ public class BorrowRecordMapper {
     }
 
     //helping method
-
     private BorrowRecordResponse.BookDTO extractBooks(Book book){
         return new BorrowRecordResponse.BookDTO(
                 book.getId(),

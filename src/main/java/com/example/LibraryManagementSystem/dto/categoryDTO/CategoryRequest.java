@@ -18,7 +18,7 @@ public class CategoryRequest {
 
     @NotBlank(message = "Category name cannot be null",
                         groups = ValidateGroups.Create.class)
-    @Size(min = 5, max = 50, message = "Member name should greater than or equal to 5 and lesser than or equal to 50",
+    @Size(min = 5, max = 50, message = "Category name must be between 5 and 50 characters",
             groups = {ValidateGroups.Create.class, ValidateGroups.Update.class})
     private String name;
 
