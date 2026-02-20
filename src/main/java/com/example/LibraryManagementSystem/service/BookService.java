@@ -15,13 +15,19 @@ import com.example.LibraryManagementSystem.repository.AuthorRepository;
 import com.example.LibraryManagementSystem.repository.BookRepository;
 import com.example.LibraryManagementSystem.repository.BorrowRecordRepository;
 import com.example.LibraryManagementSystem.repository.CategoryRepository;
+import com.example.LibraryManagementSystem.specification.BookSpecification;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class BookService {
@@ -41,9 +47,42 @@ public class BookService {
     @Autowired
     private BookMapper bookMapper;
 
-    public List<BookResponse> getAllBooks() {
-        List<Book> books = bookRepository.findAll();
-        return bookMapper.toResponseList(books);
+    private static  final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+           "id", "title", "isBn", "publishedYear", "available", "totalCopies", "availableCopies"
+    );
+
+    public Page<BookResponse> getAllBooks(String title,
+                                          String isBn,
+                                          String authorName,
+                                          Boolean available,
+                                          Integer minYear,
+                                          Integer maxYear,
+                                          List<Integer> categoryIds,
+                                          Integer minCopies,
+                                          Integer maxCopies,
+                                          Integer pageNo,
+                                          Integer pageSize,
+                                          String sortBy,
+                                          String sortDir) {
+        pageSize = Math.min(pageSize, 50);
+
+        if(!ALLOWED_SORT_FIELDS.contains(sortBy)){
+            sortBy = "id";
+        }
+
+        Sort sort = sortDir.equalsIgnoreCase("ASC")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
+
+        Specification<Book> spec = BookSpecification.filterBooks(
+                title, isBn, authorName, available, minYear, maxYear, categoryIds, minCopies, maxCopies
+        );
+
+        Page<Book> bookPage = bookRepository.findAll(spec, pageable);
+
+        return bookPage.map(bookMapper::toResponse);
     }
 
     public BookResponse getBookById(Integer bookId) {

@@ -1,21 +1,21 @@
 package com.example.LibraryManagementSystem.controller;
 
+import com.example.LibraryManagementSystem.dto.common.PageResponse;
 import com.example.LibraryManagementSystem.dto.memberDTO.MemberRequest;
 import com.example.LibraryManagementSystem.dto.memberDTO.MemberResponse;
 import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
-import com.example.LibraryManagementSystem.model.Member;
+import com.example.LibraryManagementSystem.model.MembershipType;
 import com.example.LibraryManagementSystem.service.MemberService;
 import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
-@RequestMapping("/members")
+@RequestMapping("/api/members")
 @Validated
 public class MemberController {
 
@@ -23,8 +23,20 @@ public class MemberController {
     private MemberService memberService;
 
     @GetMapping
-    public ResponseEntity<List<MemberResponse>> getAllMembers(){
-        return ResponseEntity.ok(memberService.getAllMembers());
+    public ResponseEntity<PageResponse<MemberResponse>> getAllMembers(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) MembershipType membershipType,
+            @RequestParam(required = false, defaultValue = "0") int pageNo,
+            @RequestParam(required = false, defaultValue = "5") int pageSize,
+            @RequestParam(required = false, defaultValue = "id") String sortBy, //sort by name/id/something
+            @RequestParam(required = false, defaultValue = "ASC") String sortDir){ //sort by asc/desc
+
+        Page<MemberResponse> page = memberService.getAllMembers(
+                name, email, phone, membershipType, pageNo, pageSize, sortBy, sortDir
+        );
+        return ResponseEntity.ok(PageResponse.of(page));
     }
 
     @GetMapping("/{memberId}")

@@ -2,10 +2,12 @@ package com.example.LibraryManagementSystem.controller;
 
 import com.example.LibraryManagementSystem.dto.authorDTO.AuthorRequest;
 import com.example.LibraryManagementSystem.dto.authorDTO.AuthorResponse;
+import com.example.LibraryManagementSystem.dto.common.PageResponse;
 import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
 import com.example.LibraryManagementSystem.service.AuthorService;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -14,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/authors")
+@RequestMapping("/api/authors")
 @RequiredArgsConstructor
 @Validated
 public class AuthorController {
@@ -23,8 +25,18 @@ public class AuthorController {
     private final AuthorService authorService;
 
     @GetMapping
-    public ResponseEntity<List<AuthorResponse>> getAllAuthors(){
-        return ResponseEntity.ok(authorService.getAllAuthors());
+    public ResponseEntity<PageResponse<AuthorResponse>> getAllAuthors(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false, defaultValue = "0") int pageNo,
+            @RequestParam(required = false, defaultValue = "5") int pageSize,
+            @RequestParam(required = false,  defaultValue = "id") String sortBy,
+            @RequestParam(required = false,  defaultValue = "ASC") String sortDir
+    ){
+       Page<AuthorResponse> responsePage = authorService.getAllAuthors(
+               name, email, pageNo, pageSize, sortBy, sortDir
+       );
+        return ResponseEntity.ok(PageResponse.of(responsePage));
     }
 
     @GetMapping("/{authorId}")

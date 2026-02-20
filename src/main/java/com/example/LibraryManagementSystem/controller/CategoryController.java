@@ -2,12 +2,14 @@ package com.example.LibraryManagementSystem.controller;
 
 import com.example.LibraryManagementSystem.dto.categoryDTO.CategoryRequest;
 import com.example.LibraryManagementSystem.dto.categoryDTO.CategoryResponse;
+import com.example.LibraryManagementSystem.dto.common.PageResponse;
 import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
 import com.example.LibraryManagementSystem.model.Category;
 import com.example.LibraryManagementSystem.service.CategoryService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -16,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/categories")
+@RequestMapping("/api/categories")
 @Validated
 public class CategoryController {
 
@@ -24,8 +26,16 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @GetMapping
-    public ResponseEntity<List<CategoryResponse>> getAllCategories(){
-        return ResponseEntity.ok(categoryService.getAllCategories());
+    public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) List<Integer> bookIds,
+            @RequestParam(required = false, defaultValue = "0") Integer pageNo,
+            @RequestParam(required = false, defaultValue = "5") Integer pageSize,
+            @RequestParam(required = false, defaultValue = "id") String sortBy,
+            @RequestParam(required = false, defaultValue = "ASC") String sortDir
+            ){
+        Page<CategoryResponse> responsePage = categoryService.getAllCategories(name, bookIds, pageNo, pageSize, sortBy, sortDir);
+        return ResponseEntity.ok(PageResponse.of(responsePage));
     }
 
     @GetMapping("/{categoryId}")

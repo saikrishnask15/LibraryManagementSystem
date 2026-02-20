@@ -2,21 +2,25 @@ package com.example.LibraryManagementSystem.controller;
 
 import com.example.LibraryManagementSystem.dto.borrowRecordDTO.BorrowRecordRequest;
 import com.example.LibraryManagementSystem.dto.borrowRecordDTO.BorrowRecordResponse;
+import com.example.LibraryManagementSystem.dto.common.PageResponse;
 import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
 import com.example.LibraryManagementSystem.model.BorrowRecord;
 import com.example.LibraryManagementSystem.service.BorrowRecordService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/borrowrecords")
+@RequestMapping("/api/borrowrecords")
 @Validated
 public class BorrowRecordController {
 
@@ -24,8 +28,27 @@ public class BorrowRecordController {
     public BorrowRecordService borrowRecordService;
 
     @GetMapping
-    public ResponseEntity<List<BorrowRecordResponse>> getAllRecords(){
-        return ResponseEntity.ok(borrowRecordService.getAllBorrowRecords());
+    public ResponseEntity<PageResponse<BorrowRecordResponse>> getAllRecords(
+            @RequestParam(required = false) String memberName,
+            @RequestParam(required = false) String bookName,
+            @RequestParam(required = false) Boolean isArchived,
+            @RequestParam(required = false) String archivedBy,
+            @RequestParam(required = false) BorrowRecord.BorrowStatus status,
+            @RequestParam(required = false) LocalDate borrowedAfter,
+            @RequestParam(required = false) LocalDate borrowedBefore,
+            @RequestParam(required = false) LocalDate dueAfter,
+            @RequestParam(required = false) LocalDate dueBefore,
+            @RequestParam(required = false) BigDecimal minLateFee,
+            @RequestParam(required = false) BigDecimal maxLateFee,
+            @RequestParam(required = false, defaultValue = "0") int pageNo,
+            @RequestParam(required = false, defaultValue = "5") int pageSize,
+            @RequestParam(required = false, defaultValue = "id") String sortBy,
+            @RequestParam(required = false, defaultValue = "ASC") String sortDir
+    ){
+        Page<BorrowRecordResponse> borrowRecordResponsePage = borrowRecordService.getAllBorrowRecords(
+                memberName, bookName, isArchived, archivedBy, status, borrowedAfter, borrowedBefore,
+                dueAfter, dueBefore, minLateFee, maxLateFee, pageNo, pageSize, sortBy,sortDir);
+        return ResponseEntity.ok(PageResponse.of(borrowRecordResponsePage));
     }
 
     @GetMapping("/{borrowRecordId}")

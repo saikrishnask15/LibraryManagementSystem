@@ -8,13 +8,20 @@ import com.example.LibraryManagementSystem.exception.ResourceAlreadyExistsExcept
 import com.example.LibraryManagementSystem.exception.ResourceNotFoundException;
 import com.example.LibraryManagementSystem.model.BorrowRecord;
 import com.example.LibraryManagementSystem.model.Member;
+import com.example.LibraryManagementSystem.model.MembershipType;
 import com.example.LibraryManagementSystem.repository.BorrowRecordRepository;
 import com.example.LibraryManagementSystem.repository.MemberRepository;
+import com.example.LibraryManagementSystem.specification.MemberSpecification;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.Set;
 
 @Service
 public class MemberService {
@@ -28,8 +35,54 @@ public class MemberService {
     @Autowired
     private MemberMapper memberMapper;
 
-    public List<MemberResponse> getAllMembers() {
-       return memberMapper.toResponseList(memberRepository.findAll());
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "name", "email", "phone");
+
+    public Page<MemberResponse> getAllMembers(
+            String name,
+            String email,
+            String phone,
+            MembershipType membershipType,
+            int pageNo,
+            int pageSize,
+            String sortBy,
+            String sortDir) { //Pageable interface
+
+        //validating sortBy
+        if(!ALLOWED_SORT_FIELDS.contains(sortBy)){
+            sortBy = "id";
+        }
+
+        //validating page size
+        pageSize = Math.min(pageSize, 50);
+
+        //using Sort class defining the sort direction
+        Sort sort = sortDir.equalsIgnoreCase("ASC")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
+
+//        (OR) operation
+//        Page<Member> memberPage;
+//        if (name != null){
+//            memberPage = memberRepository.findByNameContainingIgnoreCase(name, pageable);
+//        } else if (email != null){
+//            memberPage =  memberRepository.findByEmailContainingIgnoreCase(email, pageable);
+//        } else if (phone != null) {
+//            memberPage = memberRepository.findByPhone(phone, pageable);
+//        }  else{
+//            memberPage = memberRepository.findAll(pageable);
+//        }
+        //advance filtering (AND) operation
+        Specification<Member> spec = MemberSpecification.filterMembers(
+                name, email, phone, membershipType
+        );
+
+        //Executing query with specification
+        Page<Member> memberPage  = memberRepository.findAll(spec,pageable);
+
+        //Returning Page with all metadata
+        return memberPage.map(memberMapper::toResponse);
     }
 
     public MemberResponse getMemberById(Integer memberId) {

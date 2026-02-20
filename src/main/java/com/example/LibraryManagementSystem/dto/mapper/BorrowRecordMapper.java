@@ -27,6 +27,7 @@ public class BorrowRecordMapper {
                 .book(borrowRecord.getBook() != null ? extractBooks(borrowRecord.getBook()) : null)
                 .borrowDate(borrowRecord.getBorrowDate())
                 .dueDate(borrowRecord.getDueDate())
+                .lateFee(borrowRecord.getLateFee())
                 .returnDate(borrowRecord.getReturnDate())
                 .status(borrowRecord.getStatus())
                 .isArchived(borrowRecord.getIsArchived())

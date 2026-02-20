@@ -8,13 +8,18 @@ import com.example.LibraryManagementSystem.model.Book;
 import com.example.LibraryManagementSystem.model.Category;
 import com.example.LibraryManagementSystem.repository.BookRepository;
 import com.example.LibraryManagementSystem.repository.CategoryRepository;
+import com.example.LibraryManagementSystem.specification.CategorySpecification;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class CategoryService {
@@ -28,8 +33,28 @@ public class CategoryService {
     @Autowired
     private CategoryMapper categoryMapper;
 
-    public List<CategoryResponse> getAllCategories() {
-        return categoryMapper.toResponseList(categoryRepository.findAll());
+    private static final Set<String> ALLOWED_SORT_FIELDS  =Set.of("id", "name");
+
+    public Page<CategoryResponse> getAllCategories(
+            String name, List<Integer> bookIds, Integer pageNo, Integer pageSize, String sortBy, String sortDir) {
+
+        pageSize = Math.min(pageSize, 50);
+
+        if (!ALLOWED_SORT_FIELDS.contains(sortBy)){
+            sortBy = "id";
+        }
+
+        Sort sort = sortDir.equalsIgnoreCase("ASC")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
+
+        Specification<Category> spec = CategorySpecification.filterCategories(name,bookIds);
+
+        Page<Category> categoryPage = categoryRepository.findAll(spec, pageable);
+
+        return categoryPage.map(categoryMapper::toResponse);
     }
 
     public CategoryResponse getCategoryById(Integer categoryId) {

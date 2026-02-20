@@ -9,12 +9,19 @@ import com.example.LibraryManagementSystem.exception.ResourceNotFoundException;
 import com.example.LibraryManagementSystem.model.Author;
 import com.example.LibraryManagementSystem.repository.AuthorRepository;
 import com.example.LibraryManagementSystem.repository.BookRepository;
+import com.example.LibraryManagementSystem.specification.AuthorSpecification;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class AuthorService {
@@ -28,8 +35,33 @@ public class AuthorService {
     @Autowired
     private BookRepository bookRepository;
 
-    public List<AuthorResponse> getAllAuthors() {
-        return authorMapper.toResponseList(authorRepository.findAll());
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id","name", "email");
+
+    public Page<AuthorResponse> getAllAuthors(
+            String name,
+            String email,
+            int pageNo,
+            int pageSize,
+            String sortBy,
+            String sortDir) {
+
+            if(!ALLOWED_SORT_FIELDS.contains(sortBy)){
+                sortBy = "id";
+            }
+
+            pageSize = Math.min(pageSize, 50);
+
+            Sort sort = sortDir.equalsIgnoreCase("ASC")
+                    ? Sort.by(sortBy).ascending()
+                    : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize ,sort);
+
+        Specification<Author> spec = AuthorSpecification.filterAuthor(name, email);
+
+        Page<Author> authorpage = authorRepository.findAll(spec, pageable);
+
+        return authorpage.map(authorMapper::toResponse);
     }
 
     public AuthorResponse getAuthorById(Integer authorId) {

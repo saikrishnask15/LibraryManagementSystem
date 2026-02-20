@@ -10,17 +10,22 @@ import com.example.LibraryManagementSystem.model.Member;
 import com.example.LibraryManagementSystem.repository.BookRepository;
 import com.example.LibraryManagementSystem.repository.BorrowRecordRepository;
 import com.example.LibraryManagementSystem.repository.MemberRepository;
+import com.example.LibraryManagementSystem.specification.BorrowRecordSpecification;
 import jakarta.transaction.Transactional;
-import jakarta.validation.constraints.Min;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class BorrowRecordService {
@@ -37,9 +42,46 @@ public class BorrowRecordService {
     @Autowired
     private BorrowRecordMapper borrowRecordMapper;
 
+    private static final Set<String> ALLOWED_SORT_FIELDS  = Set.of(
+            "id", "borrowDate", "dueDate", "lateFee", "returnDate", "status"
+    );
 
-    public List<BorrowRecordResponse> getAllBorrowRecords() {
-        return borrowRecordMapper.toResponseList(borrowRecordRepository.findAll());
+    public Page<BorrowRecordResponse> getAllBorrowRecords(
+            String  memberName,
+            String bookName,
+            Boolean isArchived,
+            String archivedBy,
+            BorrowRecord.BorrowStatus status,
+            LocalDate borrowedAfter,
+            LocalDate borrowedBefore,
+            LocalDate dueAfter,
+            LocalDate dueBefore,
+            BigDecimal minLateFee,
+            BigDecimal maxLateFee,
+            int pageNo,
+            int pageSize,
+            String sortBy,
+            String sortDir
+            ) {
+
+        pageSize = Math.min(pageSize, 50);
+
+        if (!ALLOWED_SORT_FIELDS.contains(sortBy)){
+            sortBy = "id";
+        }
+
+        Sort sort = sortDir.equalsIgnoreCase("ASC")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
+
+        Specification<BorrowRecord> spec =BorrowRecordSpecification.filterBorrowRecords(
+                memberName, bookName, isArchived, archivedBy, status, borrowedAfter, borrowedBefore, dueAfter, dueBefore, minLateFee, maxLateFee
+        );
+
+        Page<BorrowRecord> borrowRecordPage = borrowRecordRepository.findAll(spec, pageable);
+        return borrowRecordPage.map(borrowRecordMapper::toResponse);
     }
 
     public BorrowRecordResponse getBorrowRecordById(Long borrowRecordId) {
