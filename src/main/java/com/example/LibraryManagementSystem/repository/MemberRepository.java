@@ -9,17 +9,19 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Integer>,
-                                          JpaSpecificationExecutor<Member> {
+        JpaSpecificationExecutor<Member> {
 
     boolean existsByEmail(String email);
 
-    Page<Member> findByNameContainingIgnoreCase(String name, Pageable pageable); //search by name only
+    Optional<Member> findByName(String name); //search by name only
 
     Page<Member> findByEmailContainingIgnoreCase(String email, Pageable pageable);
 
     Page<Member> findByPhone(String phone,Pageable pageable);
 
-
+    Optional<Member> findByUsersId(Integer id);
 }

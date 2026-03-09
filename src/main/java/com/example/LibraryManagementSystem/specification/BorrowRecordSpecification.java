@@ -49,7 +49,7 @@ public class BorrowRecordSpecification {
             }
             if(archivedBy != null && !archivedBy.isEmpty()){
                 predicates.add(
-                        criteriaBuilder.equal(
+                        criteriaBuilder.like(
                                 criteriaBuilder.lower(root.get("archivedBy")),
                                 "%" + archivedBy.toLowerCase() + "%"
                         )
@@ -93,4 +93,5 @@ public class BorrowRecordSpecification {
           return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }
+
 }

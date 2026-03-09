@@ -35,11 +35,12 @@ public class AuthorService {
     @Autowired
     private BookRepository bookRepository;
 
-    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id","name", "email");
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "name", "email");
 
     public Page<AuthorResponse> getAllAuthors(
             String name,
             String email,
+            Integer id,
             int pageNo,
             int pageSize,
             String sortBy,
@@ -57,7 +58,7 @@ public class AuthorService {
 
         Pageable pageable = PageRequest.of(pageNo, pageSize ,sort);
 
-        Specification<Author> spec = AuthorSpecification.filterAuthor(name, email);
+        Specification<Author> spec = AuthorSpecification.filterAuthor(name, email, id);
 
         Page<Author> authorpage = authorRepository.findAll(spec, pageable);
 

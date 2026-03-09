@@ -7,9 +7,11 @@ import com.example.LibraryManagementSystem.exception.*;
 import com.example.LibraryManagementSystem.model.Book;
 import com.example.LibraryManagementSystem.model.BorrowRecord;
 import com.example.LibraryManagementSystem.model.Member;
+import com.example.LibraryManagementSystem.model.Users;
 import com.example.LibraryManagementSystem.repository.BookRepository;
 import com.example.LibraryManagementSystem.repository.BorrowRecordRepository;
 import com.example.LibraryManagementSystem.repository.MemberRepository;
+import com.example.LibraryManagementSystem.repository.UsersRepository;
 import com.example.LibraryManagementSystem.specification.BorrowRecordSpecification;
 import jakarta.transaction.Transactional;
 
@@ -19,6 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -42,6 +45,9 @@ public class BorrowRecordService {
     @Autowired
     private BorrowRecordMapper borrowRecordMapper;
 
+    @Autowired
+    private UsersRepository usersRepository;
+
     private static final Set<String> ALLOWED_SORT_FIELDS  = Set.of(
             "id", "borrowDate", "dueDate", "lateFee", "returnDate", "status"
     );
@@ -62,7 +68,7 @@ public class BorrowRecordService {
             int pageSize,
             String sortBy,
             String sortDir
-            ) {
+    ) {
 
         pageSize = Math.min(pageSize, 50);
 
@@ -90,8 +96,8 @@ public class BorrowRecordService {
         return borrowRecordMapper.toResponse(borrowRecord);
     }
 
-@Transactional
-    public BorrowRecordResponse addBorrowRecord(BorrowRecordRequest request) {
+    @Transactional
+    public BorrowRecordResponse addBorrowRecord(BorrowRecordRequest request, String currentUsername) {
 
         //checking members
         if (request.getMemberId() == null) {
@@ -102,16 +108,28 @@ public class BorrowRecordService {
             throw new ResourceNotFoundException("Book details are missing");
         }
 
+
         //fetching member
         Member member = memberRepository.findById(request.getMemberId())
-            .orElseThrow(() -> new ResourceNotFoundException("Member", "id", request.getMemberId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Member", "id", request.getMemberId()));
+
+
+        //checking if current user is member, if he tries to borrow with other memberId
+        Users currentUser = usersRepository.findByUsername(currentUsername)
+                .orElseThrow(()-> new ResourceNotFoundException("User Not Found"));
+        // If user is MEMBER, checking ownership
+        if (currentUser.getRole() == Users.Role.MEMBER){
+            if(!member.getEmail().equals(currentUser.getEmail())){
+                throw new AccessDeniedException("You can only borrow book with your id");
+            }
+        }
 
         //Validating borrow limit based on membership tier
         validatingBorrowingLimit(member);
 
         //fetching books
         Book book = bookRepository.findById(request.getBookId())
-            .orElseThrow(() -> new ResourceNotFoundException("Book", "id", request.getBookId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Book", "id", request.getBookId()));
 
         //checking book availability
         if (!book.getAvailable() || book.getAvailableCopies() <= 0) {
@@ -175,23 +193,33 @@ public class BorrowRecordService {
     }
 
     @Transactional
-    public BorrowRecordResponse processReturn(Long borrowRecordId) {
+    public BorrowRecordResponse processReturn(Long borrowRecordId, String currentUsername) {
         BorrowRecord existingRecord = borrowRecordRepository.findById(borrowRecordId)
                 .orElseThrow(()-> new ResourceNotFoundException("BorrowRecord","id",borrowRecordId));
+
+        Users currentUser = usersRepository.findByUsername(currentUsername)
+                .orElseThrow(()-> new ResourceNotFoundException("User Not Found"));
+
+        // If user is MEMBER, checking ownership
+        if (currentUser.getRole() == Users.Role.MEMBER){
+            if(!existingRecord.getMember().getEmail().equals(currentUser.getEmail())){
+                throw new AccessDeniedException("You can only return your own books");
+            }
+        }
 
         if(existingRecord.getStatus() == BorrowRecord.BorrowStatus.RETURNED) {
             throw new ConflictException("This book has already been returned");
         }
 
-            Book book = existingRecord.getBook();
-            existingRecord.setReturnDate(LocalDateTime.now());
-            existingRecord.setStatus(BorrowRecord.BorrowStatus.RETURNED);
+        Book book = existingRecord.getBook();
+        existingRecord.setReturnDate(LocalDateTime.now());
+        existingRecord.setStatus(BorrowRecord.BorrowStatus.RETURNED);
 
-            book.setAvailableCopies(book.getAvailableCopies() + 1);
-            if(book.getAvailableCopies() > 0){
-                book.setAvailable(true);
-            }
-            bookRepository.save(book);
+        book.setAvailableCopies(book.getAvailableCopies() + 1);
+        if(book.getAvailableCopies() > 0){
+            book.setAvailable(true);
+        }
+        bookRepository.save(book);
 
         BorrowRecord savedBorrowRecord =  borrowRecordRepository.save(existingRecord);
         return borrowRecordMapper.toResponse(savedBorrowRecord);
@@ -205,7 +233,7 @@ public class BorrowRecordService {
             throw new ConflictException("BorrowRecord is already archived");
         }
         if(borrowRecord.getStatus() != BorrowRecord.BorrowStatus.RETURNED){
-            throw new ActiveBorrowExistsException("'Cannot archive active borrow record.' 'Please return the book first.'");
+            throw new ActiveBorrowExistsException("Cannot archive active borrow record. Please return the book first.");
         }
         borrowRecord.setIsArchived(true);
         borrowRecord.setArchivedAt(LocalDateTime.now());
@@ -257,5 +285,44 @@ public class BorrowRecordService {
         activeRecords.forEach(BorrowRecord::markOverDue);
         borrowRecordRepository.saveAll(activeRecords);
     }
+
+    //scheduler calls for every 1 hour : 1min
+    @Transactional
+    public void updateOverdueRecords(){
+        List<BorrowRecord> overdueRecords  = borrowRecordRepository.
+                findByStatus(BorrowRecord.BorrowStatus.OVERDUE);
+
+        if (overdueRecords.isEmpty()) {
+            return;
+        }
+        overdueRecords.forEach(record -> {
+            record.setLateFee(record.calculateLateFee());
+        });
+        borrowRecordRepository.saveAll(overdueRecords);
+    }
+
+
+    public Page<BorrowRecordResponse> getMyBorrowRecords(String username,
+                                                         int pageNo,
+                                                         int pageSize,
+                                                         String sortBy,
+                                                         String sortDir) {
+
+        pageSize = Math.min(pageSize, 50);
+
+        if (!ALLOWED_SORT_FIELDS.contains(sortBy)){
+            sortBy = "borrowDate";
+        }
+        Sort sort = sortDir.equalsIgnoreCase("ASC")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
+
+        Page<BorrowRecord> borrowRecordPage = borrowRecordRepository.findAllByMemberName(username, pageable);
+        return borrowRecordPage.map(borrowRecordMapper::toResponse);
+
+    }
 }
+
 

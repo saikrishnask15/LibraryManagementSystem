@@ -94,6 +94,7 @@ public class BookService {
     @Transactional
     public BookResponse addBook(BookRequest request) {
 
+
         if(bookRepository.existsByIsBn(request.getIsBn())) {
             throw new ResourceAlreadyExistsException("Book with this ISBN already exists");
         }

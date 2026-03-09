@@ -51,6 +51,7 @@ public class BookMapper {
                 .available(book.getAvailable())
                 .totalCopies(book.getTotalCopies())
                 .availableCopies(book.getAvailableCopies())
+                .author(extractAuthorDTO(book.getAuthor()))
                 .categories(extractCategoryDTOs(book.getCategories()))
                 .build();
     }
@@ -61,18 +62,24 @@ public class BookMapper {
                 .toList();
     }
 
+    //helping method
+    private BookResponse.AuthorDTO extractAuthorDTO(Author author){
+        if (author == null ){
+            return  null;
+        }
+        return new BookResponse.AuthorDTO(author.getId(), author.getName());
+    }
 
     //helping method
-        private List<BookResponse.CategoryDTO> extractCategoryDTOs(List<Category> categories){
-                if(categories == null || categories.isEmpty()){
-                    return new ArrayList<>();
-                }
-                return categories.stream()
-                        .map(category -> new BookResponse.CategoryDTO(
-                                category.getId(),
-                                category.getName()
-                        )).toList();
+    private List<BookResponse.CategoryDTO> extractCategoryDTOs(List<Category> categories){
+        if(categories == null || categories.isEmpty()){
+            return new ArrayList<>();
         }
+        return categories.stream()
+                .map(category -> new BookResponse.CategoryDTO(
+                        category.getId(),
+                        category.getName()
+                )).toList();
+    }
 
 }
-

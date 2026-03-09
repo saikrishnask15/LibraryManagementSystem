@@ -12,6 +12,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class BookRequest {
 
     @NotBlank(message = "Title is required", groups = ValidateGroups.Create.class)

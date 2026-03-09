@@ -2,7 +2,6 @@ package com.example.LibraryManagementSystem.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -42,8 +41,14 @@ public class Member {
     @JsonIgnoreProperties("member")
     private List<BorrowRecord> borrowRecords;
 
-    @Column(name = "membership_type)", nullable = false)
-    private MembershipType membershipType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "membership_type", nullable = false)
+    @Builder.Default
+    private MembershipType membershipType = MembershipType.BASIC;
+
+    @OneToOne
+    @JoinColumn(name = "user_id", unique = true)
+    private Users users;
 
     @PrePersist void onCreate(){
         if (membershipType == null){

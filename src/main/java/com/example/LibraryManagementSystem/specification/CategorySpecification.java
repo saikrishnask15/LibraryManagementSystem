@@ -10,11 +10,18 @@ import java.util.List;
 public class CategorySpecification {
 
     public static Specification<Category> filterCategories(
+            Integer id,
             String name,
             List<Integer> bookIds
     ){
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            if(id != null){
+                predicates.add(
+                        criteriaBuilder.equal(root.get("id"), id)
+                );
+            }
 
             if(name != null && !name.isEmpty()){
                 predicates.add(

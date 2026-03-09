@@ -11,7 +11,8 @@ public class AuthorSpecification {
 
     public static Specification<Author> filterAuthor(
             String name,
-            String email){
+            String email,
+            Integer id){
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicate = new ArrayList<>();
 
@@ -30,6 +31,12 @@ public class AuthorSpecification {
                                 criteriaBuilder.lower(root.get("email")),
                                 "%" + email.toLowerCase() + "%"
                         )
+                );
+            }
+
+            if (id != null ){
+                predicate.add(
+                       criteriaBuilder.equal(root.get("id"), id)
                 );
             }
 

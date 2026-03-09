@@ -1,6 +1,8 @@
 package com.example.LibraryManagementSystem.repository;
 
 import com.example.LibraryManagementSystem.model.BorrowRecord;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -33,4 +35,9 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Long
     Long countByMemberIdAndStatusAndIsArchivedFalse(Integer memberId, BorrowRecord.BorrowStatus borrowStatus);
 
     List<BorrowRecord> findByStatusAndDueDateBefore(BorrowRecord.BorrowStatus borrowStatus, LocalDate date);
+
+    Page<BorrowRecord> findAllByMemberName(String username, Pageable pageable);
+
+    List<BorrowRecord> findByStatus(BorrowRecord.BorrowStatus borrowStatus);
 }
+

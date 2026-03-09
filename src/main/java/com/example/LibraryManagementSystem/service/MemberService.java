@@ -9,8 +9,10 @@ import com.example.LibraryManagementSystem.exception.ResourceNotFoundException;
 import com.example.LibraryManagementSystem.model.BorrowRecord;
 import com.example.LibraryManagementSystem.model.Member;
 import com.example.LibraryManagementSystem.model.MembershipType;
+import com.example.LibraryManagementSystem.model.Users;
 import com.example.LibraryManagementSystem.repository.BorrowRecordRepository;
 import com.example.LibraryManagementSystem.repository.MemberRepository;
+import com.example.LibraryManagementSystem.repository.UsersRepository;
 import com.example.LibraryManagementSystem.specification.MemberSpecification;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -34,6 +38,9 @@ public class MemberService {
 
     @Autowired
     private MemberMapper memberMapper;
+
+    @Autowired
+    private UsersRepository usersRepository;
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "name", "email", "phone");
 
@@ -105,9 +112,19 @@ public class MemberService {
     }
 
     @Transactional
-    public MemberResponse updateMember(Integer memberId, MemberRequest request) {
+    public MemberResponse updateMember(Integer memberId, MemberRequest request, String currentUsername) {
         Member existingMember = memberRepository.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member","id",memberId));
+
+        Users currentUser = usersRepository.findByUsername(currentUsername).orElseThrow(()->
+                new ResourceNotFoundException("User not found"));
+
+        if (currentUser.getRole() == Users.Role.MEMBER) {
+            // Check if this member belongs to current user
+            if (!existingMember.getUsers().getId().equals(currentUser.getId())) {
+                throw new AccessDeniedException("You can only update your own profile");
+            }
+        }
 
         if(request.getEmail() != null && !request.getEmail().equals(existingMember.getEmail())){
             if(memberRepository.existsByEmail(request.getEmail())){
@@ -134,5 +151,54 @@ public class MemberService {
         }
 
         memberRepository.delete(member);
+    }
+
+    public MemberResponse getMyProfile(String username) {
+        // Finding user first
+        Users user = usersRepository.findByUsername(username)
+                .orElseThrow(()-> new ResourceNotFoundException("User not found"));
+
+        // Then finding member by user ID
+        Member member = memberRepository.findByUsersId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Member profile not found"));
+        return memberMapper.toResponse(member);
+    }
+
+    @Transactional
+    public MemberResponse upgradeMembership(Integer memberId, MembershipType newTier, String currentUsername) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(()-> new ResourceNotFoundException("Member", "id", memberId));
+
+        Users users = usersRepository.findByUsername(currentUsername)
+                .orElseThrow(()-> new ResourceNotFoundException("User not found"));
+
+        //if member tries to upgrade
+        if (users.getRole() == Users.Role.MEMBER){
+            Member currentMember = getCurrentMember(currentUsername);
+            if (currentMember.getId().equals(memberId)){
+                throw new AccessDeniedException("You can only upgrade your own membership");
+            }
+        }
+
+        // Validating upgrade (can only go up, not down)
+        if(newTier.ordinal() <= member.getMembershipType().ordinal()){
+            throw new IllegalArgumentException(
+                    "Cannot downgrade or stay at same tier. Use downgrade endpoint or choose higher tier."
+            );
+        }
+        //payment integration i have to implement
+        member.setMembershipType(newTier);
+        Member savedMember = memberRepository.save(member);
+
+        return memberMapper.toResponse(savedMember);
+    }
+
+    // Helper: Get current member from username
+    private Member getCurrentMember(String username) {
+        Users user = usersRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return memberRepository.findByUsersId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Member profile not found"));
     }
 }

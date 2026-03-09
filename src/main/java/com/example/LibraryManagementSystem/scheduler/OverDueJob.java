@@ -16,4 +16,10 @@ public class OverDueJob {
         borrowRecordService.markOverdueRecords();
     }
 
+    @Scheduled(cron = "0 5 * * * ?")
+    public void updateOverdueChecks(){
+        borrowRecordService.updateOverdueRecords();
+    }
+
+
 }

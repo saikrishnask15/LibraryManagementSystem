@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "borrowRecord")
@@ -91,6 +92,9 @@ public class BorrowRecord {
         this.lateFee = calculateLateFee();
     }
 
+    private static final BigDecimal DAILY_LATE_FEE = BigDecimal.ONE;
+    private static final BigDecimal MAX_LATE_FEE = BigDecimal.valueOf(100);
+
     public BigDecimal calculateLateFee() {
 
         if (dueDate == null) return BigDecimal.ZERO;
@@ -100,10 +104,10 @@ public class BorrowRecord {
         }
 
         if (dueDate.isBefore(LocalDate.now())) {
-            long daysOverdue = java.time.temporal.ChronoUnit.DAYS
+            long daysOverdue = ChronoUnit.DAYS
                     .between(dueDate, LocalDate.now());
-
-            return BigDecimal.valueOf(daysOverdue); // 1 per day
+            BigDecimal calculatedFee = DAILY_LATE_FEE.multiply(BigDecimal.valueOf(daysOverdue));
+            return calculatedFee.min(MAX_LATE_FEE); // 1 per day
         }
         return BigDecimal.ZERO;
     }

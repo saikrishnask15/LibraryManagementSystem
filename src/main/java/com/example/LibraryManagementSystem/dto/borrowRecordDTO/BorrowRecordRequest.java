@@ -19,10 +19,10 @@ public class BorrowRecordRequest {
             groups = {ValidateGroups.Update.class, ValidateGroups.Create.class})
     private Integer memberId;
 
-    @NotNull(message = "BookId is required")
+    @NotNull(message = "BookId is required", groups = ValidateGroups.Create.class)
     @Min(value = 1, message = "BookId should greater than 0",
             groups = {ValidateGroups.Update.class, ValidateGroups.Create.class})
-    private Integer BookId;
+    private Integer bookId;
 
     private BorrowRecord.BorrowStatus status;
 

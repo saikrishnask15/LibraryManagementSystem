@@ -33,10 +33,10 @@ public class CategoryService {
     @Autowired
     private CategoryMapper categoryMapper;
 
-    private static final Set<String> ALLOWED_SORT_FIELDS  =Set.of("id", "name");
+    private static final Set<String> ALLOWED_SORT_FIELDS  = Set.of("id", "name");
 
     public Page<CategoryResponse> getAllCategories(
-            String name, List<Integer> bookIds, Integer pageNo, Integer pageSize, String sortBy, String sortDir) {
+          Integer id,  String name, List<Integer> bookIds, Integer pageNo, Integer pageSize, String sortBy, String sortDir) {
 
         pageSize = Math.min(pageSize, 50);
 
@@ -50,7 +50,7 @@ public class CategoryService {
 
         Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
 
-        Specification<Category> spec = CategorySpecification.filterCategories(name,bookIds);
+        Specification<Category> spec = CategorySpecification.filterCategories(id, name, bookIds);
 
         Page<Category> categoryPage = categoryRepository.findAll(spec, pageable);
 

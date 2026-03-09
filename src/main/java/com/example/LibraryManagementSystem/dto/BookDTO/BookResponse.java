@@ -20,12 +20,21 @@ public class BookResponse {
     private Boolean available;
     private Integer totalCopies;
     private Integer availableCopies;
+    private AuthorDTO author;
     private List<CategoryDTO> categories;
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CategoryDTO{
+        private Integer id;
+        private String name;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AuthorDTO{
         private Integer id;
         private String name;
     }
