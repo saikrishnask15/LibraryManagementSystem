@@ -1,6 +1,7 @@
 package com.example.LibraryManagementSystem.dto;
 
 import com.example.LibraryManagementSystem.model.Users;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Data;
 
@@ -14,6 +15,6 @@ public class UserResponse {
     private String email;
     private Users.Role role;
     private Boolean enabled;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
-    // No password field!
 }

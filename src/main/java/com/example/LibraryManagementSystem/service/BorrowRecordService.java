@@ -225,6 +225,7 @@ public class BorrowRecordService {
         return borrowRecordMapper.toResponse(savedBorrowRecord);
     }
 
+    @Transactional
     public BorrowRecordResponse archiveBorrowRecord(Long id, String archivedBy, String reason){
         BorrowRecord borrowRecord = borrowRecordRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("BorrowRecord", "id", id));
@@ -244,7 +245,7 @@ public class BorrowRecordService {
         return borrowRecordMapper.toResponse(savedBorrowRecord);
     }
 
-
+    @Transactional
     public void deleteBorrowRecord(Long borrowRecordId) {
         BorrowRecord borrowRecord = borrowRecordRepository.findById(borrowRecordId)
                 .orElseThrow(()-> new ResourceNotFoundException("BorrowRecord", "id", borrowRecordId));

@@ -175,7 +175,7 @@ public class MemberService {
         //if member tries to upgrade
         if (users.getRole() == Users.Role.MEMBER){
             Member currentMember = getCurrentMember(currentUsername);
-            if (currentMember.getId().equals(memberId)){
+            if (!currentMember.getId().equals(memberId)){
                 throw new AccessDeniedException("You can only upgrade your own membership");
             }
         }

@@ -43,7 +43,7 @@ public class UsersService {
         pageSize = Math.min(pageSize, 50);
 
         if (!ALLOWED_SORT_FIELDS.contains(sortBy)){
-            sortDir = "id";
+            sortBy = "id";
         }
 
         Sort sort = sortDir.equalsIgnoreCase("ASC")
@@ -57,9 +57,10 @@ public class UsersService {
         return usersPage.map(userMapper::toResponse);
     }
 
-    public Users getCurrentUser(String username) {
-        return usersRepository.findByUsername(username).orElseThrow(()->
+    public UserResponse getCurrentUser(String username) {
+        Users users = usersRepository.findByUsername(username).orElseThrow(()->
                 new RuntimeException("User Not Found"));
+        return  userMapper.toResponse(users);
     }
 
     @Transactional

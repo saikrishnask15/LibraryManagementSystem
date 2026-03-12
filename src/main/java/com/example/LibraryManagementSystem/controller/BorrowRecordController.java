@@ -105,6 +105,7 @@ public class BorrowRecordController {
     }
 
     // patch is used for partial update
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN', 'MEMBER')")
     @PatchMapping("/{borrowRecordId}/return")
     public ResponseEntity<BorrowRecordResponse> processReturn(
             @PathVariable @Min(value = 1, message = "Id must be greater than 0") Long borrowRecordId,

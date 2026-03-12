@@ -2,6 +2,7 @@ package com.example.LibraryManagementSystem.dto.borrowRecordDTO;
 
 
 import com.example.LibraryManagementSystem.model.BorrowRecord;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,12 +30,14 @@ public class BorrowRecordResponse {
 
     private BigDecimal lateFee;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime returnDate = null;
 
     private BorrowRecord.BorrowStatus status;
 
     private Boolean isArchived;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime archivedAt;
 
     private String archivedBy;
