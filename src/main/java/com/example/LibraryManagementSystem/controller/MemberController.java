@@ -8,6 +8,7 @@ import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
 import com.example.LibraryManagementSystem.model.MembershipType;
 import com.example.LibraryManagementSystem.service.MemberService;
 import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -21,10 +22,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/members")
 @Validated
+@RequiredArgsConstructor
 public class MemberController {
 
-    @Autowired
-    private MemberService memberService;
+    private final MemberService memberService;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @GetMapping

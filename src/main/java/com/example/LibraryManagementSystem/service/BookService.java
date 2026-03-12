@@ -17,7 +17,7 @@ import com.example.LibraryManagementSystem.repository.BorrowRecordRepository;
 import com.example.LibraryManagementSystem.repository.CategoryRepository;
 import com.example.LibraryManagementSystem.specification.BookSpecification;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,22 +30,18 @@ import java.util.List;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class BookService {
 
-    @Autowired
-    private BookRepository bookRepository;
+    private final BookRepository bookRepository;
 
-    @Autowired
-    private AuthorRepository authorRepository;
+    private final AuthorRepository authorRepository;
 
-    @Autowired
-    private BorrowRecordRepository borrowRecordRepository;
+    private final BorrowRecordRepository borrowRecordRepository;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    private final CategoryRepository categoryRepository;
 
-    @Autowired
-    private BookMapper bookMapper;
+    private final BookMapper bookMapper;
 
     private static  final Set<String> ALLOWED_SORT_FIELDS = Set.of(
            "id", "title", "isBn", "publishedYear", "available", "totalCopies", "availableCopies"

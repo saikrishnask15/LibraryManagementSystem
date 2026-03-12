@@ -13,7 +13,7 @@ import com.example.LibraryManagementSystem.repository.MemberRepository;
 import com.example.LibraryManagementSystem.repository.UsersRepository;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,22 +23,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class AuthenticationService {
 
-    @Autowired
-    public UsersRepository usersRepository;
+    private final UsersRepository usersRepository;
 
-    @Autowired
-    public PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    public AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    public MemberRepository memberRepository;
+    private final MemberRepository memberRepository;
 
-    @Autowired
-    public JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil;
 
     @Transactional
     public AuthenticationResponse register(@Valid RegisterRequest request) {

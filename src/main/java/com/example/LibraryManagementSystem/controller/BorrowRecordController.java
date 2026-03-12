@@ -8,6 +8,7 @@ import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
 import com.example.LibraryManagementSystem.model.BorrowRecord;
 import com.example.LibraryManagementSystem.service.BorrowRecordService;
 import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -25,10 +26,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/borrowrecords")
 @Validated
+@RequiredArgsConstructor
 public class BorrowRecordController {
 
-    @Autowired
-    public BorrowRecordService borrowRecordService;
+    private final BorrowRecordService borrowRecordService;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @GetMapping

@@ -15,7 +15,7 @@ import com.example.LibraryManagementSystem.repository.UsersRepository;
 import com.example.LibraryManagementSystem.specification.BorrowRecordSpecification;
 import jakarta.transaction.Transactional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,22 +31,18 @@ import java.util.List;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class BorrowRecordService {
 
-    @Autowired
-    private BorrowRecordRepository borrowRecordRepository;
+    private final BorrowRecordRepository borrowRecordRepository;
 
-    @Autowired
-    private MemberRepository memberRepository;
+    private final MemberRepository memberRepository;
 
-    @Autowired
-    private BookRepository bookRepository;
+    private final BookRepository bookRepository;
 
-    @Autowired
-    private BorrowRecordMapper borrowRecordMapper;
+    private final BorrowRecordMapper borrowRecordMapper;
 
-    @Autowired
-    private UsersRepository usersRepository;
+    private final UsersRepository usersRepository;
 
     private static final Set<String> ALLOWED_SORT_FIELDS  = Set.of(
             "id", "borrowDate", "dueDate", "lateFee", "returnDate", "status"

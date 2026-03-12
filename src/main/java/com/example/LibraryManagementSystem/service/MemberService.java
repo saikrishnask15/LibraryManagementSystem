@@ -15,32 +15,28 @@ import com.example.LibraryManagementSystem.repository.MemberRepository;
 import com.example.LibraryManagementSystem.repository.UsersRepository;
 import com.example.LibraryManagementSystem.specification.MemberSpecification;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class MemberService {
 
-    @Autowired
-    private MemberRepository memberRepository;
+    private final MemberRepository memberRepository;
 
-    @Autowired
-    private BorrowRecordRepository borrowRecordRepository;
+    private final BorrowRecordRepository borrowRecordRepository;
 
-    @Autowired
-    private MemberMapper memberMapper;
+    private final MemberMapper memberMapper;
 
-    @Autowired
-    private UsersRepository usersRepository;
+    private final UsersRepository usersRepository;
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "name", "email", "phone");
 

@@ -5,6 +5,7 @@ import com.example.LibraryManagementSystem.dto.UserResponse;
 import com.example.LibraryManagementSystem.dto.common.PageResponse;
 import com.example.LibraryManagementSystem.model.Users;
 import com.example.LibraryManagementSystem.service.UsersService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +18,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
 public class UsersController {
 
-    @Autowired
-    private UsersService usersService;
+    private final UsersService usersService;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")

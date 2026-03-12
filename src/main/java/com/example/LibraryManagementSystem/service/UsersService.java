@@ -5,13 +5,12 @@ import com.example.LibraryManagementSystem.dto.mapper.UserMapper;
 import com.example.LibraryManagementSystem.exception.ActiveBorrowExistsException;
 import com.example.LibraryManagementSystem.exception.ResourceNotFoundException;
 import com.example.LibraryManagementSystem.model.BorrowRecord;
-import com.example.LibraryManagementSystem.model.Member;
 import com.example.LibraryManagementSystem.model.Users;
 import com.example.LibraryManagementSystem.repository.BorrowRecordRepository;
 import com.example.LibraryManagementSystem.repository.MemberRepository;
 import com.example.LibraryManagementSystem.repository.UsersRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,19 +21,16 @@ import org.springframework.stereotype.Service;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class UsersService {
 
-    @Autowired
-    private UsersRepository usersRepository;
+    private final UsersRepository usersRepository;
 
-    @Autowired
-    private BorrowRecordRepository borrowRecordRepository;
+    private final BorrowRecordRepository borrowRecordRepository;
 
-    @Autowired
-    private  MemberRepository memberRepository;
+    private final  MemberRepository memberRepository;
 
-    @Autowired
-    private UserMapper userMapper;
+    private final UserMapper userMapper;
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "username", "email");
 
