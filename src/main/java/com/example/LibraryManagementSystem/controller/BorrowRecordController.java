@@ -7,6 +7,9 @@ import com.example.LibraryManagementSystem.dto.common.PageResponse;
 import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
 import com.example.LibraryManagementSystem.model.BorrowRecord;
 import com.example.LibraryManagementSystem.service.BorrowRecordService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,10 +30,18 @@ import java.util.List;
 @RequestMapping("/api/borrowrecords")
 @Validated
 @RequiredArgsConstructor
+@SecurityRequirement(name = "Bearer Authentication")
+@Tag(name = "BorrowRecords", description = "Curd operations, filtering, sorting")
 public class BorrowRecordController {
 
     private final BorrowRecordService borrowRecordService;
 
+    @Operation(
+            summary = "Get all Borrow records",
+            description = "Retrieves paginated list of Borrow records with optional filtering by member name," +
+                    "book name, is archived, archived by, status, borrowed after borrowed before, due after due before" +
+                    "mini late fee, maxi late fee. Supports sorting and pagination. Requires ADMIN or LIBRARIAN role. "
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @GetMapping
     public ResponseEntity<PageResponse<BorrowRecordResponse>> getAllRecords(
@@ -55,6 +66,11 @@ public class BorrowRecordController {
         return ResponseEntity.ok(PageResponse.of(borrowRecordResponsePage));
     }
 
+    @Operation(
+            summary = "Get borrow record by ID",
+            description = "Retrieves detailed information about a specific borrow record including its member and book" +
+                    "Requires ADMIN or LIBRARIAN role. "
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @GetMapping("/{borrowRecordId}")
     public ResponseEntity<BorrowRecordResponse> getBorrowRecordById(
@@ -62,18 +78,32 @@ public class BorrowRecordController {
         return ResponseEntity.ok(borrowRecordService.getBorrowRecordById(borrowRecordId));
     }
 
+    @Operation(
+            summary = "Get all archived borrow records",
+            description = "Retrieves archived borrow records" +
+                    "Requires ADMIN or LIBRARIAN role. "
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @GetMapping("/archived")
     public ResponseEntity<List<BorrowRecordResponse>> getAllArchivedBorrowRecords() {
         return ResponseEntity.ok(borrowRecordService.getAllArchivedBorrowRecords());
     }
 
+    @Operation(
+            summary = "Get all non-archived borrow records",
+            description = "Retrieves non-archived borrow records" +
+                    "Requires ADMIN or LIBRARIAN role. "
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @GetMapping("/non-archived")
     public ResponseEntity<List<BorrowRecordResponse>> getAllActiveBorrowRecords() {
         return ResponseEntity.ok(borrowRecordService.getAllActiveBorrowRecords());
     }
 
+    @Operation(
+            summary = "Get all borrow records of current user",
+            description = "Retrieves paginated list of Borrow records. Supports sorting and pagination. "
+    )
     @GetMapping("/my-records")
     public ResponseEntity<PageResponse<BorrowRecordResponse>> getMyBorrowRecords(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -87,6 +117,11 @@ public class BorrowRecordController {
         return ResponseEntity.ok(PageResponse.of(recordResponse));
     }
 
+    @Operation(
+            summary = "Add a new borrow record",
+            description = "Creates a new borrow record in the system." +
+                    " Requires ADMIN or LIBRARIAN role or member himself. "
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN', 'MEMBER')")
     @PostMapping
     public ResponseEntity<BorrowRecordResponse> addBorrowRecord(
@@ -97,6 +132,10 @@ public class BorrowRecordController {
         return ResponseEntity.status(HttpStatus.CREATED).body(borrowRecordResponse);
     }
 
+    @Operation(
+            summary = "Update borrow record",
+            description = "Partially updates borrow record information. Requires ADMIN or LIBRARIAN role."
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @PatchMapping("/{borrowRecordId}")
     public ResponseEntity<BorrowRecordResponse> updateBorrowRecord(
@@ -106,6 +145,10 @@ public class BorrowRecordController {
     }
 
     // patch is used for partial update
+    @Operation(
+            summary = "Return borrowed book",
+            description = "Return borrowed book. Requires ADMIN or LIBRARIAN role or member himself."
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN', 'MEMBER')")
     @PatchMapping("/{borrowRecordId}/return")
     public ResponseEntity<BorrowRecordResponse> processReturn(
@@ -114,6 +157,10 @@ public class BorrowRecordController {
         return ResponseEntity.ok(borrowRecordService.processReturn(borrowRecordId, userDetails.getUsername()));
     }
 
+    @Operation(
+            summary = "Archive the borrow record",
+            description = "Requires ADMIN or LIBRARIAN role. Cannot archive if it is active borrow record."
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @PatchMapping("/{borrowRecordId}/archive")
     public ResponseEntity<BorrowRecordResponse> archiveBorrowRecord(
@@ -124,6 +171,11 @@ public class BorrowRecordController {
         return ResponseEntity.ok(borrowRecordResponse);
     }
 
+    @Operation(
+            summary = "Delete a Borrow record",
+            description = "Permanently deletes a Borrow record. Requires ADMIN role. " +
+                    "Cannot archive if it is active borrow record."
+    )
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{borrowRecordId}")
     public ResponseEntity<Void> deleteBorrowRecord(

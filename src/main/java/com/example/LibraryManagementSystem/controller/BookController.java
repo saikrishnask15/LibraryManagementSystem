@@ -7,6 +7,9 @@ import com.example.LibraryManagementSystem.dto.common.PageResponse;
 import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
 import com.example.LibraryManagementSystem.service.BookService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,10 +25,17 @@ import java.util.List;
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
 @Validated
+@SecurityRequirement(name = "Bearer Authentication")
+@Tag(name = "Books", description = " CRUD operations, filtering, sorting")
 public class BookController {
 
     private final BookService bookService;
 
+    @Operation(
+            summary = "Get all books",
+            description = "Retrieves paginated list of books with optional filtering by title, ISBN, " +
+                    "author, year, category, availability, and copy count. Supports sorting and pagination."
+    )
     @GetMapping
     public ResponseEntity<PageResponse<BookResponse>> getAllBooks(
             @RequestParam(required = false) String title,
@@ -48,12 +58,21 @@ public class BookController {
         return ResponseEntity.ok(PageResponse.of(bookResponses));
     }
 
+    @Operation(
+            summary = "Get book by ID",
+            description = "Retrieves detailed information about a specific book including its author and categories"
+    )
     @GetMapping("/{bookId}")
     public ResponseEntity<BookResponse> getBookById(
             @PathVariable @Min(value = 1, message = "Id must be greater than 0") Integer bookId) {
         return ResponseEntity.ok(bookService.getBookById(bookId));
     }
 
+    @Operation(
+            summary = "Add a new book",
+            description = "Creates a new book in the system. Requires ADMIN or LIBRARIAN role. " +
+                    "ISBN must be unique."
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @PostMapping
     public ResponseEntity<BookResponse> addBook(
@@ -61,6 +80,10 @@ public class BookController {
         return ResponseEntity.status(HttpStatus.CREATED).body(bookService.addBook(request));
     }
 
+    @Operation(
+            summary = "Update book details",
+            description = "Partially updates book information. Requires ADMIN or LIBRARIAN role."
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @PatchMapping("/{bookId}")
     public ResponseEntity<BookResponse> updateBook(
@@ -69,6 +92,11 @@ public class BookController {
         return ResponseEntity.ok(bookService.updateBook(bookId, request));
     }
 
+    @Operation(
+            summary = "Delete a book",
+            description = "Permanently deletes a book. Requires ADMIN role. " +
+                    "Cannot delete if book has active borrows."
+    )
     @PreAuthorize("hasAnyRole('ADMIN')")
     @DeleteMapping("/{bookId}")
     public ResponseEntity<Void> deleteBook(

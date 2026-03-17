@@ -80,6 +80,7 @@ public class AuthenticationService {
         //generating token
         String token = jwtUtil.generateToken(users);
 
+        //response (response to dto)
         return AuthenticationResponse.builder()
                 .token(token)
                 .username(savedUser.getUsername())

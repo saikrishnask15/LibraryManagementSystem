@@ -21,6 +21,7 @@ A production-grade **Library Management System** built with **Spring Boot 4.0.1*
 | **Advanced Filtering** | Multi-field search on books, authors, members, borrow records |
 | **Global Error Handling** | Centralized exception handling with structured JSON error responses |
 | **Input Validation** | Group-based validation (Create vs Update) with descriptive messages |
+| **API Documentation** | Interactive Swagger/OpenAPI documentation |
 
 ---
 
@@ -33,6 +34,7 @@ A production-grade **Library Management System** built with **Spring Boot 4.0.1*
 | **Security** | Spring Security 6 + JWT (jjwt 0.13.0) |
 | **ORM** | Spring Data JPA / Hibernate |
 | **Database** | MySQL |
+| **API Docs** | Swagger/OpenAPI 3.0 |
 | **Validation** | Jakarta Bean Validation |
 | **Utilities** | Lombok |
 | **Build Tool** | Maven |
@@ -50,7 +52,8 @@ src/main/java/com/example/LibraryManagementSystem/
 │   ├── JwtUtil.java
 │   ├── JwtAuthenticationEntryPoint.java
 │   ├── JwtAccessDeniedHandler.java
-│   └── CustomUserDetailsService.java
+│   ├── CustomUserDetailsService.java
+│   └── openAPI/OpenApiConfig.java  
 │
 ├── controller/              # REST API controllers
 │   ├── AuthenticationController.java
@@ -271,7 +274,39 @@ erDiagram
    ./mvnw spring-boot:run
    ```
 
-5. **Access the API** at `http://localhost:8080`
+5. **Access the API** at
+   ```
+   API Base URL: http://localhost:8080
+   Swagger UI: http://localhost:8080/swagger-ui.html 
+   ```
+---
+
+##  API Documentation
+
+### Interactive API Docs
+
+Full API documentation is available via Swagger UI:
+
+**URL:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+
+Features:
+-  Interactive endpoint testing
+-  Request/response schemas
+-  Authentication flow
+-  Error response examples
+
+### Authentication
+
+All endpoints (except `/api/auth/*`) require JWT authentication.
+
+**Add token to requests:**
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Token expiration:** 24 hours
+
+---
 
 ### Quick Test
 ```bash
@@ -310,8 +345,12 @@ curl -X POST http://localhost:8080/api/auth/login \
 
 ## Author
 
-**Sai Krishna** — [GitHub](https://github.com/saikrishnask15)
+**Sai Krishna Goud**
 
+- GitHub: [@saikrishnask15](https://github.com/saikrishnask15)
+- LinkedIn: [sai-krishna-goud](https://www.linkedin.com/in/sai-krishna-goud-b5288a191/)
+- Portfolio: [saikrishnaskportfolio.netlify.app](https://saikrishnaskportfolio.netlify.app/)
+- Email: saikrishnagoud.dev@gmail.com
 ---
 
 ## License

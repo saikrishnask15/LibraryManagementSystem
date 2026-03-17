@@ -6,6 +6,9 @@ import com.example.LibraryManagementSystem.dto.categoryDTO.CategoryResponse;
 import com.example.LibraryManagementSystem.dto.common.PageResponse;
 import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
 import com.example.LibraryManagementSystem.service.CategoryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,10 +25,17 @@ import java.util.List;
 @RequestMapping("/api/categories")
 @Validated
 @RequiredArgsConstructor
+@SecurityRequirement(name = "Bearer Authentication")
+@Tag(name = "Categories", description = "Curd operations, filtering, sorting")
 public class CategoryController {
 
     private final CategoryService categoryService;
 
+    @Operation(
+            summary = "Get all Categories",
+            description = "Retrieves paginated list of categories with optional filtering by id, name, " +
+                    "bookIds. Supports sorting and pagination."
+    )
     @GetMapping
     public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(
             @RequestParam(required = false) Integer id,
@@ -40,12 +50,20 @@ public class CategoryController {
         return ResponseEntity.ok(PageResponse.of(responsePage));
     }
 
+    @Operation(
+            summary = "Get book by ID",
+            description = "Retrieves detailed information about a specific Category including its books"
+    )
     @GetMapping("/{categoryId}")
     public ResponseEntity<CategoryResponse> getCategoryById(
             @PathVariable @Min(value = 1, message = "Id must be greater than 0") Integer categoryId) {
         return ResponseEntity.ok(categoryService.getCategoryById(categoryId));
     }
 
+    @Operation(
+            summary = "Add a new Category",
+            description = "Creates a new category in the system. Requires ADMIN or LIBRARIAN role."
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @PostMapping
     public ResponseEntity<CategoryResponse> addCategory(
@@ -54,6 +72,10 @@ public class CategoryController {
         return ResponseEntity.status(HttpStatus.CREATED).body(categoryResponse);
     }
 
+    @Operation(
+            summary = "Update category details",
+            description = "Partially updates category information. Requires ADMIN or LIBRARIAN role."
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @PatchMapping("/{categoryId}")
     public ResponseEntity<CategoryResponse> updateCategory(
@@ -62,6 +84,11 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.updateCategory(categoryId, request));
     }
 
+    @Operation(
+            summary = "Delete a Category",
+            description = "Permanently deletes a category. Requires ADMIN role. " +
+                    "Cannot delete if book has active borrows with category."
+    )
     @PreAuthorize("hasAnyRole('ADMIN')")
     @DeleteMapping("/{categoryId}")
     public ResponseEntity<Void> deleteCategory(

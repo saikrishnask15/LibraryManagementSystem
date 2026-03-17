@@ -6,6 +6,9 @@ import com.example.LibraryManagementSystem.dto.authorDTO.AuthorResponse;
 import com.example.LibraryManagementSystem.dto.common.PageResponse;
 import com.example.LibraryManagementSystem.dto.validation.ValidateGroups;
 import com.example.LibraryManagementSystem.service.AuthorService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,11 +24,18 @@ import java.util.List;
 @RequestMapping("/api/authors")
 @RequiredArgsConstructor
 @Validated
+@SecurityRequirement(name = "Bearer Authentication")
+@Tag(name = "Authors", description = "Curd operations, filtering, sorting")
 public class AuthorController {
 
     // lombok constructor injection
     private final AuthorService authorService;
 
+    @Operation(
+            summary = "Get all Authors",
+            description = "Retrieves paginated list of authors with optional filtering by name, email, " +
+                    "id. Supports sorting and pagination."
+    )
     @GetMapping
     public ResponseEntity<PageResponse<AuthorResponse>> getAllAuthors(
             @RequestParam(required = false) String name,
@@ -40,12 +50,21 @@ public class AuthorController {
         return ResponseEntity.ok(PageResponse.of(responsePage));
     }
 
+    @Operation(
+            summary = "Get Author by ID",
+            description = "Retrieves detailed information about a specific author including No. books."
+    )
     @GetMapping("/{authorId}")
     public ResponseEntity<AuthorResponse> getAuthorById(
             @PathVariable @Min(value = 1, message = "Id must be greater than 0") Integer authorId) {
         return ResponseEntity.ok(authorService.getAuthorById(authorId));
     }
 
+    @Operation(
+            summary = "Add a new Author",
+            description = "Creates a new author in the system. Requires ADMIN or LIBRARIAN role. " +
+                    "email must be unique."
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @PostMapping
     public ResponseEntity<AuthorResponse> addAuthor(
@@ -54,6 +73,10 @@ public class AuthorController {
         return ResponseEntity.status(HttpStatus.CREATED).body(authorRes);
     }
 
+    @Operation(
+            summary = "Add a new Author",
+            description = "Partially updates author information. Requires ADMIN or LIBRARIAN role. "
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @PatchMapping("/{authorId}")
     public ResponseEntity<AuthorResponse> updateAuthor(
@@ -63,6 +86,11 @@ public class AuthorController {
         return ResponseEntity.ok(author);
     }
 
+    @Operation(
+            summary = "Delete a Author",
+            description = "Permanently deletes a book. Requires ADMIN role. " +
+                    "Cannot delete if book has active borrows."
+    )
     @PreAuthorize("hasAnyRole('ADMIN')")
     @DeleteMapping("/{authorId}")
     public ResponseEntity<Void> deleteAuthor(@PathVariable Integer authorId) {
