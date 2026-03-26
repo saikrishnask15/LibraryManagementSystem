@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+<!-- 1.   terminal settings: setting to info-->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+              ${CONSOLE_LOG_PATTERN}
+            </pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+
+<!-- 2.   file settings: setting to debug-->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/library-management.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>
+                logs/archived/log_%d{yyyy-MM-dd}.%i.log
+            </fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+                <pattern>
+                    %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+                </pattern>
+        </encoder>
+    </appender>
+
+    <!--3.  APPLY LEVELS -->
+    <!-- Logging everything at INFO to the Console -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <!-- Logging your App at DEBUG only to the File -->
+    <logger name="com.example.LibraryManagementSystem" level="DEBUG" additivity="false">
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <logger name="org.hibernate" level="WARN" />
+    <logger name="org.springframework.boot.autoconfigure" level="WARN" />
+</configuration>

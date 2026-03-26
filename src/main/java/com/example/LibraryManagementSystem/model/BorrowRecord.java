@@ -87,10 +87,10 @@ public class BorrowRecord {
     }
 
     // Marks record as OVERDUE and calculates late fee
-    public void markOverDue(){
-        this.status = BorrowStatus.OVERDUE;
-        this.lateFee = calculateLateFee();
-    }
+    //    public void markOverDue(){
+    //        this.status = BorrowStatus.OVERDUE;
+    //        this.lateFee = calculateLateFee();
+    //    }
 
     private static final BigDecimal DAILY_LATE_FEE = BigDecimal.ONE;
     private static final BigDecimal MAX_LATE_FEE = BigDecimal.valueOf(100);

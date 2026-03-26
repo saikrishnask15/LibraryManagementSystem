@@ -13,6 +13,7 @@ import com.example.LibraryManagementSystem.specification.AuthorSpecification;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthorService {
@@ -64,16 +66,23 @@ public class AuthorService {
 
     public AuthorResponse getAuthorById(Integer authorId) {
         Author author = authorRepository.findById(authorId)
-                .orElseThrow(()-> new ResourceNotFoundException("Author","id",authorId));
+                .orElseThrow(()-> {
+                    log.warn("Author not found - ID: {}", authorId);
+                    return new ResourceNotFoundException("Author","id",authorId);
+                });
         return authorMapper.toResponse(author);
     }
 
     @Transactional
     public AuthorResponse addAuthor(@Valid AuthorRequest request) {
+
+        log.info("Adding new author - Name: {}, Email: {}", request.getName(), request.getEmail());
+
         // Check if email already exists (if email is provided)
         if (request.getEmail() != null && !request.getEmail().isEmpty()) {
             authorRepository.findByEmail(request.getEmail())
                     .ifPresent(a -> {
+                        log.warn("Author creation failed - Email already exists: {}", request.getEmail());
                         throw new ResourceAlreadyExistsException("Author", "email", request.getEmail());
                     });
         }
@@ -82,18 +91,26 @@ public class AuthorService {
         Author author = authorMapper.toEntity(request);
 
         Author savedAuthor = authorRepository.save(author);
+        log.info("Author added successfully - ID: {}, Name: '{}'", savedAuthor.getId(), savedAuthor.getName());
 
         return authorMapper.toResponse(savedAuthor);
     }
 
     @Transactional
     public AuthorResponse updateAuthor(Integer authorId, AuthorRequest request) {
+
+        log.info("Updating author - ID: {}", authorId);
+
         Author exisitingAuthor = authorRepository.findById(authorId)
-                .orElseThrow(()-> new ResourceNotFoundException("Author","id",authorId));
+                .orElseThrow(()-> {
+                    log.warn("Author not found for update - ID: {}", authorId);
+                    return new ResourceNotFoundException("Author","id",authorId);
+                });
 
         if (request.getEmail() != null && !request.getEmail().equals(exisitingAuthor.getEmail())) {
             authorRepository.findByEmail(request.getEmail())
                     .ifPresent(a -> {
+                        log.warn("Author update failed - Email already exists: {}", request.getEmail());
                         throw new ResourceAlreadyExistsException("Author", "email", request.getEmail());
                     });
 
@@ -102,16 +119,28 @@ public class AuthorService {
         authorMapper.updateEntityFromRequest(exisitingAuthor, request);
 
         Author author = authorRepository.save(exisitingAuthor);
+        log.info("Author updated - ID: {}", authorId);
         return authorMapper.toResponse(author);
     }
 
     @Transactional
     public void deleteAuthor(Integer authorId) {
+
+        log.info("Deleting record - ID: {}", authorId);
+
         Author author = authorRepository.findById(authorId)
-                .orElseThrow(()->  new ResourceNotFoundException("Author","id",authorId));
+                .orElseThrow(()->  {
+                    log.warn("Author not found for deletion - ID: {}", authorId);
+                    return new ResourceNotFoundException("Author","id",authorId);
+                });
+
         if (author.getBooks() != null && !author.getBooks().isEmpty()) {
+            log.warn("Author deletion failed - Has {} books - ID: {}, Name: '{}'",
+                    author.getBooks().size(), authorId, author.getName());
             throw new ConflictException("Cannot delete author with existing books");
         }
-         authorRepository.delete(author);
+
+        authorRepository.delete(author);
+        log.info("Author deleted - ID: {}, Name: '{}'", authorId, author.getName());
     }
 }

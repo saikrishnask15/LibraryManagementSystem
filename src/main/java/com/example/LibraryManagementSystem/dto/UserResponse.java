@@ -13,6 +13,7 @@ public class UserResponse {
     private Integer id;
     private String username;
     private String email;
+    private String phone;
     private Users.Role role;
     private Boolean enabled;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

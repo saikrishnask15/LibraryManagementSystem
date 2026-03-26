@@ -11,6 +11,7 @@ import com.example.LibraryManagementSystem.repository.CategoryRepository;
 import com.example.LibraryManagementSystem.specification.CategorySpecification;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
@@ -57,12 +59,17 @@ public class CategoryService {
 
     public CategoryResponse getCategoryById(Integer categoryId) {
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(()-> new ResourceNotFoundException("Category","id",categoryId));
+                .orElseThrow(()-> {
+                    log.warn("Category not found - ID: {}", categoryId);
+                    return new ResourceNotFoundException("Category","id",categoryId);
+                });
         return categoryMapper.toResponse(category);
     }
 
     @Transactional
     public CategoryResponse addCategory(CategoryRequest request) {
+
+        log.info("Adding new category - category name: {}", request.getName());
 
         // Creating category entity
         //using mapper to convert DTO to entity
@@ -76,6 +83,8 @@ public class CategoryService {
 
             // Validate all books exist
             if (newBooks.size() != request.getBookIds().size()) {
+                log.warn("Some books not found. Requested: {}, Found: {}",
+                        request.getBookIds().size(), newBooks.size());
                 throw new ResourceNotFoundException("One or more books not found");
             }
 
@@ -87,17 +96,24 @@ public class CategoryService {
             }
             // saving the books to update in join table
             bookRepository.saveAll(newBooks);
-
             savedCategory.setBooks(newBooks);
         }
+        log.info("Category added successfully - ID: {}, category name: {}", savedCategory.getId(), savedCategory.getName());
         return categoryMapper.toResponse(savedCategory);
     }
 
     @Transactional
     public CategoryResponse updateCategory(Integer categoryId, CategoryRequest request) {
 
+        log.warn("Updating category - ID: {}", categoryId);
+
         Category existingCategory = categoryRepository.findById(categoryId)
-                .orElseThrow(()-> new ResourceNotFoundException("Category","id",categoryId));
+                .orElseThrow(()-> {
+                    log.warn("Category not found for update - ID: {}", categoryId);
+                    return new ResourceNotFoundException("Category","id",categoryId);
+                });
+
+        String oldCategory = existingCategory.getName();
 
         if(request.getName() != null){
             existingCategory.setName(request.getName());
@@ -122,6 +138,8 @@ public class CategoryService {
 
                 // Validate all books exist
                 if (newBooks.size() != request.getBookIds().size()) {
+                    log.warn("Some books not found. Requested: {}, Found: {}",
+                            request.getBookIds().size(), newBooks.size());
                     throw new ResourceNotFoundException("One or more books not found");
                 }
 
@@ -138,13 +156,21 @@ public class CategoryService {
             }
         }
         Category savedCategory = categoryRepository.save(existingCategory);
+        log.info("Category updated - ID: {}, Old name: '{}' -> new name: '{}'",
+                categoryId, oldCategory, savedCategory.getName());
         return categoryMapper.toResponse(savedCategory);
     }
 
     @Transactional
     public void deleteCategory(Integer categoryId) {
+
+        log.info("Deleting category - ID: {}", categoryId);
+
        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(()-> new ResourceNotFoundException("Category","id",categoryId));
+                .orElseThrow(()-> {
+                    log.warn("Category not found for Deletion - ID: {}", categoryId);
+                    return new ResourceNotFoundException("Category","id",categoryId);
+                });
 
         if (category.getBooks() != null && !category.getBooks().isEmpty()) {
             for (Book book : category.getBooks()) {
@@ -154,5 +180,6 @@ public class CategoryService {
             bookRepository.saveAll(category.getBooks());
         }
         categoryRepository.delete(category);
+        log.info("Category deleted - ID: {}, name: '{}'", categoryId, category.getName());
     }
 }

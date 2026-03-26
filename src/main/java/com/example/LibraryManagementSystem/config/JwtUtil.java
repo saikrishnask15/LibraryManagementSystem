@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class JwtUtil {
 
@@ -58,6 +60,7 @@ public class JwtUtil {
     public String extractUsername(String token) {
         String subject = extractAllClaims(token).getSubject();
         if (subject == null || subject.isEmpty()) {
+            log.warn("JWT Extraction Failed: Subject/Username is missing in the provided token.");
             throw new IllegalArgumentException("Token does not contain a valid username");
         }
         return subject;

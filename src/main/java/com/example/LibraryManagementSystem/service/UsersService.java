@@ -11,6 +11,7 @@ import com.example.LibraryManagementSystem.repository.MemberRepository;
 import com.example.LibraryManagementSystem.repository.UsersRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UsersService {
@@ -54,13 +56,19 @@ public class UsersService {
     }
 
     public UserResponse getCurrentUser(String username) {
-        Users users = usersRepository.findByUsername(username).orElseThrow(()->
-                new RuntimeException("User Not Found"));
-        return  userMapper.toResponse(users);
+        log.info("Getting user details - user: {}", username);
+        Users users = usersRepository.findByUsername(username)
+                .orElseThrow(()-> {
+                         log.warn("User not found: {}", username);
+                        return new ResourceNotFoundException("User Not Found");
+        });
+        return userMapper.toResponse(users);
     }
 
     @Transactional
     public void deleteUser(Integer id, String currentUsername) {
+
+        log.info("Deleting user - ID: {}", id);
 
         usersRepository.findByUsername(currentUsername).ifPresent(currentUser -> {
             if (currentUser.getId().equals(id)) {
@@ -68,13 +76,16 @@ public class UsersService {
             }
         });
 
-        Users user = usersRepository.findById(id).orElseThrow(()->
-                new ResourceNotFoundException("User", "id", id));
+        Users user = usersRepository.findById(id).orElseThrow(()-> {
+            log.warn("User not found for deletion - ID: {}", id);
+           return new ResourceNotFoundException("User", "id", id);
+        });
 
         if (user.getRole() == Users.Role.MEMBER) {
             memberRepository.findByUsersId(id).ifPresent(member -> {
                 // 1. Checking for active borrows
                 if (borrowRecordRepository.existsByMemberIdAndStatusNot(member.getId(), BorrowRecord.BorrowStatus.RETURNED)) {
+                    log.warn("User deletion failed - Has unreturned books - ID: {}, Name: '{}'",member.getId(), member.getName());
                     throw new ActiveBorrowExistsException("Cannot delete user with active borrows");
                 }
                 // 2. Deleting Member first to satisfy Foreign Key constraints
@@ -83,5 +94,6 @@ public class UsersService {
         }
 
         usersRepository.delete(user);
+        log.info("User deleted - ID: {}, Name: '{}'", user.getId(), user.getUsername());
     }
 }

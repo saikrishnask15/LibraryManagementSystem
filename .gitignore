@@ -16,6 +16,9 @@ target/
 # Application Properties
 src/main/resources/application-dev.properties
 
+#logging
+/logs/
+
 ### IntelliJ IDEA ###
 .idea
 *.iws

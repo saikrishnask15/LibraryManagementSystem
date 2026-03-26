@@ -1,17 +1,22 @@
 package com.example.LibraryManagementSystem.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
@@ -19,7 +24,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-
+@Slf4j
 @RestControllerAdvice  // any exception in project is catch here
 public class GlobalExceptionHandler {
 
@@ -243,6 +248,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException  ex, WebRequest request){
+
+        String path = getPath(request);
+        log.warn("Authentication failed at {} - Invalid credentials", path);
+
         ErrorResponse errorResponse = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.UNAUTHORIZED.value(),
@@ -255,6 +264,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
+
+        String path = getPath(request);
+        String username = getCurrentUsername();
+
+        log.warn("Access denied at {} for user: {} - Attempted to access protected resource", path, username);
+
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.FORBIDDEN.value(),
@@ -284,15 +299,45 @@ public class GlobalExceptionHandler {
             Exception ex,
             WebRequest request) {
 
+        String path = getPath(request);
+        String username = getCurrentUsername();
+
+        log.error("UNEXPECTED ERROR at {} by user: {} - Type: {}, Message: {}",
+                path, username, ex.getClass().getSimpleName(), ex.getMessage(), ex);
+
         ErrorResponse errorResponse = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
-//                "Something went wrong on our end. Please try again later."
+                // "Something went wrong on our end. Please try again later."
                 ex.getMessage(),
                 request.getDescription(false)
         );
 
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    //helping methods
+    //getting path
+    private String getPath(WebRequest request){
+        if (request instanceof ServletWebRequest){
+            HttpServletRequest httpServletRequest = ((ServletWebRequest) request).getRequest();
+            return httpServletRequest.getRequestURI();
+        }
+        return request.getDescription(false);
+    }
+
+    // getting current authenticated username
+    private String getCurrentUsername(){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated()){
+                return authentication.getName();
+            }
+        } catch (Exception e) {
+
+        }
+        return "Anonymous";
+    }
+
 }

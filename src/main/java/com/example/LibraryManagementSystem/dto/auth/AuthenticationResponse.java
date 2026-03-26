@@ -15,6 +15,8 @@ public class AuthenticationResponse {
     private String token;
     private String username;
     private String email;
+    private String phone;
     private Users.Role role;
+    private Integer memberId;
     private String message;
 }

@@ -79,28 +79,6 @@ public class BorrowRecordController {
     }
 
     @Operation(
-            summary = "Get all archived borrow records",
-            description = "Retrieves archived borrow records" +
-                    "Requires ADMIN or LIBRARIAN role. "
-    )
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    @GetMapping("/archived")
-    public ResponseEntity<List<BorrowRecordResponse>> getAllArchivedBorrowRecords() {
-        return ResponseEntity.ok(borrowRecordService.getAllArchivedBorrowRecords());
-    }
-
-    @Operation(
-            summary = "Get all non-archived borrow records",
-            description = "Retrieves non-archived borrow records" +
-                    "Requires ADMIN or LIBRARIAN role. "
-    )
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    @GetMapping("/non-archived")
-    public ResponseEntity<List<BorrowRecordResponse>> getAllActiveBorrowRecords() {
-        return ResponseEntity.ok(borrowRecordService.getAllActiveBorrowRecords());
-    }
-
-    @Operation(
             summary = "Get all borrow records of current user",
             description = "Retrieves paginated list of Borrow records. Supports sorting and pagination. "
     )
