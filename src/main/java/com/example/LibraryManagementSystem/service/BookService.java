@@ -168,7 +168,7 @@ public class BookService {
 
         if (request.getTotalCopies() != null && request.getTotalCopies() > exisitingBook.getTotalCopies()){
             int addedCopies = request.getTotalCopies() - exisitingBook.getTotalCopies();
-            exisitingBook.setAvailableCopies(exisitingBook.getTotalCopies() + addedCopies);
+            exisitingBook.setAvailableCopies(exisitingBook.getAvailableCopies() + addedCopies);
             exisitingBook.setTotalCopies(request.getTotalCopies());
             exisitingBook.setAvailable(true);
         }
@@ -181,6 +181,7 @@ public class BookService {
             List<Category> managedCategories = categoryRepository.findAllById(request.getCategories());
 
             if(managedCategories.size() != request.getCategories().size()){
+                log.warn("Some categories not found. Requested: {}, Found: {}", request.getCategories().size(), managedCategories.size());
                 throw new ResourceNotFoundException("One or more categories not found");
             }
             exisitingBook.setCategories(managedCategories);

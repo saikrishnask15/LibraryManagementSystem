@@ -82,7 +82,7 @@ public class BorrowRecordService {
 
         Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
 
-        Specification<BorrowRecord> spec =BorrowRecordSpecification.filterBorrowRecords(
+        Specification<BorrowRecord> spec = BorrowRecordSpecification.filterBorrowRecords(
                 memberName, bookName, isArchived, archivedBy, status, borrowedAfter, borrowedBefore, dueAfter, dueBefore, minLateFee, maxLateFee
         );
 

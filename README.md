@@ -13,7 +13,7 @@ A production-grade **Library Management System** built with **Spring Boot 4.0.1*
 | **Authors** | CRUD with linked book listings |
 | **Categories** | CRUD with many-to-many book relationships |
 | **Members** | Profile management linked to user accounts |
-| **Membership Tiers** | `BASIC` (3 books/14 days) · `STANDARD` (5 books/21 days) · `PREMIUM` (10 books/30 days) |
+| **Membership Tiers** | `BASIC` (3 books/7 days) · `STANDARD` (5 books/14 days) · `PREMIUM` (10 books/30 days) |
 | **Borrow Records** | Borrow → Return → Archive lifecycle with overdue detection |
 | **Late Fees** | Auto-calculated at ₹1/day, capped at ₹100 |
 | **Email Notifications** | Welcome emails, borrow confirmations, return receipts, overdue reminders |
@@ -24,6 +24,7 @@ A production-grade **Library Management System** built with **Spring Boot 4.0.1*
 | **Scheduled Tasks** | Automated overdue detection and late fee calculation |
 | **API Documentation** | Interactive Swagger/OpenAPI documentation |
 | **Comprehensive Logging** | Production-ready logging with SLF4J/Logback |
+| **Unit Testing** | 206 tests across 6 service classes — JUnit 5 + Mockito + AssertJ |
 
 ---
 
@@ -42,6 +43,7 @@ A production-grade **Library Management System** built with **Spring Boot 4.0.1*
 | **Logging** | SLF4J + Logback |
 | **Utilities** | Lombok |
 | **Build Tool** | Maven 3.9+ |
+| **Testing** | JUnit 5 + Mockito + AssertJ |
 
 ---
 
@@ -57,7 +59,7 @@ src/main/java/com/example/LibraryManagementSystem/
 │   ├── JwtAuthenticationEntryPoint.java
 │   ├── JwtAccessDeniedHandler.java
 │   ├── CustomUserDetailsService.java
-│   └── openAPI/OpenApiConfig.java  
+│   └── openAPI/OpenApiConfig.java
 │
 ├── controller/              # REST API controllers
 │   ├── AuthenticationController.java
@@ -107,6 +109,133 @@ src/main/java/com/example/LibraryManagementSystem/
 └── scheduler/               # Scheduled tasks
     └── BorrowRecordScheduler.java
 ```
+
+---
+
+## Test Structure
+
+```
+src/test/java/com/example/LibraryManagementSystem/
+│
+└── service/                          # Unit tests — JUnit 5 + Mockito
+    ├── AuthorServiceTest.java           26 tests
+    ├── BookServiceTest.java             26 tests
+    ├── CategoryServiceTest.java         31 tests
+    ├── BorrowRecordServiceTest.java     62 tests
+    ├── MemberServiceTest.java           42 tests
+    └── UsersServiceTest.java            19 tests
+                                      ─────────────
+                                       206 tests total
+```
+
+---
+
+## Unit Testing
+
+All service-layer business logic is covered with **JUnit 5**, **Mockito**, and **AssertJ**.
+No Spring context is loaded — tests run fast using `@ExtendWith(MockitoExtension.class)`.
+
+### Tools & Annotations
+
+| Tool / Annotation | Purpose |
+|---|---|
+| `@ExtendWith(MockitoExtension.class)` | Enables Mockito without loading Spring context — fast |
+| `@Mock` | Creates a fake implementation of a dependency |
+| `@InjectMocks` | Creates the real service and injects all mocks into it |
+| `@Nested` | Groups related tests for readability |
+| `@ParameterizedTest` | Runs the same test with multiple inputs |
+| `@BeforeEach` | Rebuilds fixtures fresh before every test |
+| `AssertJ` | Fluent, readable assertions (`assertThat`) |
+
+### Running Tests
+
+```bash
+# Run all tests
+mvn test
+
+# Run a specific test class
+mvn test -Dtest=AuthorServiceTest
+
+# Run with coverage report (requires JaCoCo plugin)
+mvn test jacoco:report
+```
+
+---
+
+### AuthorService — 26 tests
+
+| Method | Tests |
+|---|---|
+| `getAllAuthors()` | Returns mapped page · Caps pageSize at 50 · Falls back to `id` for invalid sortBy · Accepts all allowed sortBy fields · Applies descending sort · Returns empty page |
+| `getAuthorById()` | Returns AuthorResponse when found · Throws `ResourceNotFoundException` when missing |
+| `addAuthor()` | Saves successfully · Throws `ResourceAlreadyExistsException` for duplicate email · Skips email check when null · Skips email check when blank |
+| `updateAuthor()` | Updates with same email · Updates with new unique email · Throws `ResourceAlreadyExistsException` for taken email · Throws `ResourceNotFoundException` when not found · Skips email check when null · Updates bio to null |
+| `deleteAuthor()` | Deletes when no books · Throws `ConflictException` with one book · Throws `ConflictException` with multiple books · Throws `ResourceNotFoundException` when missing |
+
+---
+
+### BookService — 26 tests
+
+| Method | Tests |
+|---|---|
+| `getAllBooks()` | Returns mapped page · Caps pageSize at 50 · Falls back to `id` for 4 invalid fields · Accepts all 7 allowed sortBy fields · Applies descending sort · Returns empty page |
+| `getBookById()` | Returns BookResponse when found · Throws `ResourceNotFoundException` when missing |
+| `addBook()` | Saves successfully · Throws `ResourceAlreadyExistsException` for duplicate ISBN · Throws `ResourceNotFoundException` when author missing · Throws `ResourceNotFoundException` for category mismatch · Skips category lookup when null · Skips category lookup when empty |
+| `updateBook()` | Throws `ResourceNotFoundException` when not found · Throws `ResourceAlreadyExistsException` for ISBN conflict · Allows update with same ISBN · Throws `ResourceNotFoundException` for missing authorId · Increases availableCopies when totalCopies raised · Does not adjust copies when lower · Does not adjust copies when equal · Throws `ResourceNotFoundException` for invalid category · Skips category update when null · Skips author lookup when null · Skips ISBN check when null |
+| `deleteBook()` | Deletes when no active borrows · Throws `ResourceNotFoundException` when missing · Throws `ActiveBorrowExistsException` when borrowed |
+
+---
+
+### CategoryService — 31 tests
+
+| Method | Tests |
+|---|---|
+| `getAllCategories()` | Returns mapped page · Caps pageSize at 50 · Falls back to `id` for 4 invalid fields · Accepts all 2 allowed sortBy fields · Applies descending sort · Returns empty page |
+| `getCategoryById()` | Returns CategoryResponse with nested books · Throws `ResourceNotFoundException` when missing |
+| `addCategory()` | Saves and links books · Skips duplicate book link · Throws `ResourceNotFoundException` for invalid bookId · Skips when bookIds null · Skips when bookIds empty |
+| `updateCategory()` | Throws `ResourceNotFoundException` when missing · Updates name and description · Skips name when null · Skips description when null · Replaces book links · Unlinks all when bookIds empty · Skips book logic when bookIds null · Throws `ResourceNotFoundException` for invalid new bookId · Skips old-book unlink when no books associated · Skips duplicate book link |
+| `deleteCategory()` | Deletes and unlinks books · Deletes directly when no books · Throws `ResourceNotFoundException` when missing · Unlinks from multiple books |
+
+---
+
+### BorrowRecordService — 62 tests
+
+| Method | Tests |
+|---|---|
+| `getAllBorrowRecords()` | Returns mapped page · Caps pageSize at 50 · Falls back to `id` for invalid sortBy · Accepts all 6 allowed sortBy fields · Applies descending sort |
+| `getBorrowRecordById()` | Returns response with nested DTOs · Throws `ResourceNotFoundException` when missing |
+| `addBorrowRecord()` | Creates record for ADMIN · MEMBER borrows for self · Throws `AccessDeniedException` when MEMBER borrows for other · Throws `ResourceNotFoundException` for null memberId · Throws `ResourceNotFoundException` for null bookId · Throws `ResourceNotFoundException` when member missing · Throws `ResourceNotFoundException` when user missing · Throws `BorrowLimitExceededException` at limit · Throws `ResourceNotFoundException` when book missing · Throws `BookNotAvailableException` for zero copies · Throws `BookNotAvailableException` when available=false · Throws `DuplicateBorrowException` for active duplicate · Sets available=false on last copy · Sets dueDate from MembershipType |
+| `updateBorrowRecord()` | Throws `ResourceNotFoundException` when missing · Throws `ConflictException` for RETURNED record · Updates member · Throws `ResourceNotFoundException` for invalid memberId · Updates book · Throws `ResourceNotFoundException` for invalid bookId · Skips lookups when both IDs null |
+| `processReturn()` | Processes return for ADMIN · MEMBER returns own book · Throws `AccessDeniedException` for wrong MEMBER · Throws `ResourceNotFoundException` when record missing · Throws `ResourceNotFoundException` when user missing · Throws `ConflictException` when already returned · Sets available=true when first copy returned |
+| `archiveBorrowRecord()` | Archives RETURNED record · Defaults archivedBy to SYSTEM when null · Throws `ResourceNotFoundException` when missing · Throws `ConflictException` when already archived · Throws `ActiveBorrowExistsException` when ACTIVE · Throws `ActiveBorrowExistsException` when OVERDUE |
+| `deleteBorrowRecord()` | Deletes RETURNED and archived · Throws `ResourceNotFoundException` when missing · Throws `ActiveBorrowExistsException` when ACTIVE · Throws `ActiveBorrowExistsException` when OVERDUE · Throws `ConflictException` when returned but not archived |
+| `markOverdueRecords()` | Marks records OVERDUE and sets fee · No-op when empty · Processes multiple records |
+| `updateOverdueRecords()` | Recalculates fees and sends reminders · Caps fee at ₹100 · No-op when empty |
+| `getMyBorrowRecords()` | Returns paginated records · Falls back to `borrowDate` (not `id`) for invalid sortBy · Caps pageSize at 50 |
+
+---
+
+### MemberService — 42 tests
+
+| Method | Tests |
+|---|---|
+| `getAllMembers()` | Returns mapped page · Caps pageSize at 50 · Falls back to `id` for 4 invalid fields · Accepts all 4 allowed sortBy fields · Applies descending sort · Returns empty page |
+| `getMemberById()` | Returns MemberResponse when found · Throws `ResourceNotFoundException` when missing |
+| `addMember()` | Saves successfully · Throws `ResourceAlreadyExistsException` for duplicate email |
+| `updateMember()` | ADMIN updates any profile · LIBRARIAN updates any profile · MEMBER updates own profile · Throws `AccessDeniedException` for other MEMBER · Throws `ResourceNotFoundException` when member missing · Throws `ResourceNotFoundException` when user missing · Throws `ResourceAlreadyExistsException` for taken email · Skips email check when unchanged · Skips email check when null |
+| `deleteMember()` | Deletes when no unreturned books · Throws `ResourceNotFoundException` when missing · Throws `ActiveBorrowExistsException` with active borrows · Verifies correct memberId used in borrow check |
+| `getMyProfile()` | Returns profile for current user · Throws `ResourceNotFoundException` when user missing · Throws `ResourceNotFoundException` when member not linked · Verifies two-step lookup (user → member by userId) |
+| `upgradeMembership()` | ADMIN upgrades any member · ADMIN upgrades BASIC → PREMIUM (skip tier) · LIBRARIAN upgrades any member · MEMBER upgrades own tier · Throws `AccessDeniedException` for other MEMBER · Throws `IllegalArgumentException` on downgrade · Throws `IllegalArgumentException` for same tier · Throws `ResourceNotFoundException` when member missing · Throws `ResourceNotFoundException` when user missing · Verifies all 3 valid upgrade paths |
+
+---
+
+### UsersService — 19 tests
+
+| Method | Tests |
+|---|---|
+| `getAllUsers()` | Returns correct total count · Maps username correctly · Maps role correctly · Returns empty page · Caps pageSize at 50 · Falls back to `id` for 4 invalid fields · Accepts all 3 allowed sortBy fields · Applies descending sort |
+| `getCurrentUser()` | Returns username correctly · Returns role correctly · Returns enabled flag correctly · Throws `ResourceNotFoundException` when missing |
+| `deleteUser()` | Throws `AccessDeniedException` for self-deletion · Skips guard when current user not in DB · Throws `ResourceNotFoundException` when user missing · Deletes ADMIN directly · Deletes LIBRARIAN directly · Deletes member row before user row (FK order) · Deletes user when no member row linked · Throws `ActiveBorrowExistsException` with active borrows · Verifies borrow check uses member.getId() not user.getId() |
 
 ---
 
@@ -183,7 +312,7 @@ erDiagram
 
 ---
 
-##  Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -209,31 +338,30 @@ erDiagram
 
    Update `src/main/resources/application.properties`:
    ```properties
-   # Database Configuration
+   # Database
    spring.datasource.url=jdbc:mysql://localhost:3306/library_db
    spring.datasource.username=root
    spring.datasource.password=your_password
-   
-   # JPA Configuration
+
+   # JPA
    spring.jpa.hibernate.ddl-auto=update
    spring.jpa.show-sql=true
    spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
-   
-   # JWT Configuration
+
+   # JWT
    jwt.secret=your-secret-key-here
    jwt.expiration=86400000
-   
-   # Email Configuration (Gmail)
+
+   # Email
    spring.mail.host=smtp.gmail.com
    spring.mail.port=587
    spring.mail.username=your-email@gmail.com
    spring.mail.password=your-gmail-app-password
    spring.mail.properties.mail.smtp.auth=true
    spring.mail.properties.mail.smtp.starttls.enable=true
-   
    app.email.from=Library System <your-email@gmail.com>
    app.email.enabled=true
-   
+
    # Swagger
    springdoc.swagger-ui.path=/swagger-ui.html
    springdoc.api-docs.path=/api-docs
@@ -248,120 +376,7 @@ erDiagram
 5. **Access the application**
    - **API Base URL:** `http://localhost:8080`
    - **Swagger UI:** `http://localhost:8080/swagger-ui.html`
-   - **API Docs JSON:** `http://localhost:8080/api-docs`
-
----
-
-##  Email Notifications
-
-The system automatically sends emails for:
-
-### 1. Welcome Email
-- **Trigger:** User registration
-- **Content:** Account details, membership info, borrowing limits
-- **Example:**
-  ```
-  Subject: Welcome to Library Management System! 
-  
-  Hello John Doe,
-  
-  Your account has been successfully created:
-  • Username: john
-  • Membership: BASIC
-  • Can borrow: 3 books for 14 days
-  
-  Happy Reading!
-  ```
-
-### 2. Borrow Confirmation
-- **Trigger:** Book borrowed successfully
-- **Content:** Book details, due date, late fee policy
-- **Example:**
-  ```
-  Subject: Book Borrowed Successfully! 
-  
-  You have successfully borrowed:
-  • Title: Clean Code
-  • Author: Robert C. Martin
-  • Due Date: 31 Mar 2026
-  
-  Please return by the due date to avoid late fees (₹1/day, max ₹100)
-  ```
-
-### 3. Return Confirmation
-- **Trigger:** Book returned
-- **Content:** Return details, late fee (if any)
-- **Example:**
-  ```
-  Subject: Book Returned Successfully! 
-  
-  Thank you for returning:
-  • Title: Clean Code
-  • Returned On Time! 
-  
-  Feel free to borrow more books anytime.
-  ```
-
-### 4. Overdue Reminders
-- **Trigger:** Daily at 3:00 AM for overdue books
-- **Content:** Overdue details, current late fee
-- **Example:**
-  ```
-  Subject: Overdue Book Reminder
-  
-  Your book is overdue:
-  • Title: Clean Code
-  • Due Date: 10 Mar 2026 (7 days ago)
-  • Late Fee: ₹7.00
-  
-  Please return soon to avoid additional charges!
-  ```
-
-**Note:** To enable email notifications, configure Gmail App Password in `application.properties`
-
-
----
-
-## API Documentation
-
-### Interactive Swagger UI
-
-**URL:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-
-**Features:**
--  Test all 50+ endpoints interactively
--  View request/response schemas
--  Try authentication flow
--  See error response examples
-
-### How to Use Swagger UI
-
-1. **Open Swagger UI**
-2. **Authenticate:**
-   - Click "Authorize" button (green lock icon)
-   - Login using `POST /api/auth/login`:
-     ```json
-     {
-       "username": "admin",
-       "password": "admin@123"
-     }
-     ```
-   - Copy the JWT token from response
-   - Paste in "Authorize" dialog: `Bearer YOUR_TOKEN`
-   - Click "Authorize"
-3. **Test endpoints** - All protected endpoints now work!
-
-### Authentication
-
-All endpoints (except `/api/auth/*`) require JWT authentication.
-
-**Add token to requests:**
-```http
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Token expiration:** 24 hours
- 
+   - **API Docs:** `http://localhost:8080/api-docs`
 
 ---
 
@@ -376,22 +391,16 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### Books — `/api/books`
 | Method | Endpoint | Description | Access |
 |--------|----------|-------------|--------|
-| `GET` | `/` | List books (filter by title, ISBN, author, year, category, availability, copies) | Authenticated |
+| `GET` | `/` | List books with filtering | Authenticated |
 | `GET` | `/{bookId}` | Get book by ID | Authenticated |
 | `POST` | `/` | Add a new book | ADMIN, LIBRARIAN |
 | `PATCH` | `/{bookId}` | Update book details | ADMIN, LIBRARIAN |
 | `DELETE` | `/{bookId}` | Delete a book | ADMIN |
 
-**Filtering parameters:**
-- `title`, `isBn`, `authorName`, `available`
-- `minYear`, `maxYear`, `categoryIds`
-- `minCopies`, `maxCopies`
-- `pageNo`, `pageSize`, `sortBy`, `sortDir`
-
 ### Authors — `/api/authors`
 | Method | Endpoint | Description | Access |
 |--------|----------|-------------|--------|
-| `GET` | `/` | List authors (filter by name, email, id) | Authenticated |
+| `GET` | `/` | List authors with filtering | Authenticated |
 | `GET` | `/{authorId}` | Get author by ID | Authenticated |
 | `POST` | `/` | Add a new author | ADMIN, LIBRARIAN |
 | `PATCH` | `/{authorId}` | Update author | ADMIN, LIBRARIAN |
@@ -400,7 +409,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### Categories — `/api/categories`
 | Method | Endpoint | Description | Access |
 |--------|----------|-------------|--------|
-| `GET` | `/` | List categories (filter by id, name, bookIds) | Authenticated |
+| `GET` | `/` | List categories with filtering | Authenticated |
 | `GET` | `/{categoryId}` | Get category by ID | Authenticated |
 | `POST` | `/` | Add a new category | ADMIN, LIBRARIAN |
 | `PATCH` | `/{categoryId}` | Update category | ADMIN, LIBRARIAN |
@@ -409,7 +418,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### Members — `/api/members`
 | Method | Endpoint | Description | Access |
 |--------|----------|-------------|--------|
-| `GET` | `/` | List members (filter by name, email, phone, tier) | ADMIN, LIBRARIAN |
+| `GET` | `/` | List members with filtering | ADMIN, LIBRARIAN |
 | `GET` | `/{memberId}` | Get member by ID | ADMIN, LIBRARIAN |
 | `GET` | `/me` | Get my profile | Authenticated |
 | `POST` | `/` | Add a new member | ADMIN, LIBRARIAN |
@@ -420,7 +429,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### Borrow Records — `/api/borrowrecords`
 | Method | Endpoint | Description | Access |
 |--------|----------|-------------|--------|
-| `GET` | `/` | List all records (rich filtering) | ADMIN, LIBRARIAN |
+| `GET` | `/` | List all records with filtering | ADMIN, LIBRARIAN |
 | `GET` | `/{borrowRecordId}` | Get record by ID | ADMIN, LIBRARIAN |
 | `GET` | `/my-records` | Get my borrow records | Authenticated |
 | `POST` | `/` | Create borrow record | ADMIN, LIBRARIAN, MEMBER |
@@ -448,113 +457,18 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-##  Logging
+## Security Features
 
-Comprehensive logging throughout the application:
-
-### Log Levels
-- **ERROR:** System failures, unexpected errors
-- **WARN:** User errors, validation failures, security violations
-- **INFO:** Business operations (create, update, delete)
-- **DEBUG:** Detailed flow, search queries
-
-### Log Examples
-```
-2026-03-17 22:15:30 -  Adding new book - Title: Clean Code
-2026-03-17 22:15:31 -  Book added successfully - ID: 5
-2026-03-17 22:20:00 -  Processing borrow - Member: 1, Book: 5
-2026-03-17 22:20:01 -  Book borrowed - Due: 31 Mar 2026
-2026-03-17 22:25:00 - ️ Book unavailable - Title: 'Clean Code'
-2026-03-17 22:30:00 -  Authentication failed - Invalid credentials
-```
-
-### Log Location
-- **Console:** Real-time logging
-- **File:** `logs/library-management.log`
+- **JWT Authentication** — Stateless token-based auth
+- **BCrypt Password Hashing** — Secure password storage
+- **Role-Based Access Control** — Method-level security with `@PreAuthorize`
+- **Global Exception Handling** — Secure error responses
+- **Input Validation** — Bean validation with custom messages
+- **Security Logging** — Track failed logins, access violations
 
 ---
 
-##  Security Features
-
--  **JWT Authentication** - Stateless token-based auth
--  **BCrypt Password Hashing** - Secure password storage 
--  **Role-Based Access Control** - Method-level security with @PreAuthorize
--  **Global Exception Handling** - Secure error responses
--  **Input Validation** - Bean validation with custom messages
--  **Security Logging** - Track failed logins, access violations
-
----
-
-##  Project Highlights
-
-### Production-Ready Features
-
-1. **Comprehensive Email System**
-   - Welcome emails on registration
-   - Instant borrow/return confirmations
-   - Automated overdue reminders
-   - Professional email templates
-
-2. **Interactive API Documentation**
-   - Swagger UI for easy testing
-   - Complete endpoint documentation
-   - Request/response examples
-   - One-click authentication
-
-3. **Enterprise-Grade Logging**
-   - Structured logging with SLF4J
-   - Security audit trail
-   - Business operation tracking
-   - Error debugging support
-
-4. **Advanced Architecture**
-   - Layered architecture (Controller → Service → Repository)
-   - DTO pattern for API contracts
-   - Specification pattern for dynamic filtering
-   - Scheduled tasks with @Scheduled
-
-5. **Robust Error Handling**
-   - Global exception handler
-   - Structured error responses
-   - User-friendly error messages
-   - HTTP status code compliance
-
----
-
-
-##  Testing
-
-### Quick Test Flow
-
-1. **Start the application**
-   ```bash
-   mvn spring-boot:run
-   ```
-
-2. **Open Swagger UI**
-   ```
-   http://localhost:8080/swagger-ui.html
-   ```
-
-3. **Register a user**
-   ```json
-   POST /api/auth/register
-   {
-     "username": "testuser",
-     "password": "Test@123",
-     "email": "test@example.com",
-     "name": "Test User",
-     "phone": "1234567890"
-   }
-   ```
-
-4. **Check your email** for welcome message! 
-
-5. **Login and test** other endpoints
-
----
-
-##  Key Statistics
+## Key Statistics
 
 - **50+ REST Endpoints** across 7 controllers
 - **6 Core Entities** with relationships
@@ -562,41 +476,10 @@ Comprehensive logging throughout the application:
 - **8 Custom Exceptions** for error handling
 - **4 Email Templates** for notifications
 - **2 Scheduled Tasks** for automation
-- **100% JPA** for database operations
+- **206 Unit Tests** across 6 service classes
+- **100% Service Layer** test coverage
 
 ---
-
-## 🛠️ Development
-
-### Running in Development Mode
-
-```bash
-# With live reload
-mvn spring-boot:run
- 
-# With debug logging
-mvn spring-boot:run -Dlogging.level.com.example.LibraryManagementSystem=DEBUG
-```
-
-### Building for Production
-
-```bash
-mvn clean package
-java -jar target/LibraryManagementSystem-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
-```
- 
----
-
-## Authentication Flow
-
-```
-1. POST /api/auth/register  →  Creates user account (default role: MEMBER)
-2. POST /api/auth/login     →  Returns JWT token (valid for 24 hours)
-3. Use token in header       →  Authorization: Bearer <token>
-```
-
----
-
 
 ## Author
 
@@ -606,6 +489,7 @@ java -jar target/LibraryManagementSystem-0.0.1-SNAPSHOT.jar --spring.profiles.ac
 - LinkedIn: [sai-krishna-goud](https://www.linkedin.com/in/sai-krishna-goud-b5288a191/)
 - Portfolio: [saikrishnaskportfolio.netlify.app](https://saikrishnaskportfolio.netlify.app/)
 - Email: saikrishnagoud.dev@gmail.com
+
 ---
 
 ## License
