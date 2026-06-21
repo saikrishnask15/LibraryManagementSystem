@@ -1,0 +1,44 @@
+# top-level keyword, it defines one or more containers that should run together.
+services:
+  # service name
+  mysql:
+    # the official pre-built MySQL image from Docker Hub
+    image: mysql:8.0
+    # running container a fixed, human-readable name
+    container_name: library-mysql-container
+    # If the container crashes or the machine reboots, Docker automatically restarts it — unless you manually stopped it.
+    restart: unless-stopped
+    # left-side port on our laptop and right-side inside the container
+    ports:
+      - "3307:3306"
+    environment:
+      # takes password from env
+      MYSQL_ROOT_PASSWORD: ${LIBRARY_DB_PASSWORD}
+      # it auto-creates a database called library_db
+      MYSQL_DATABASE: library_db
+    volumes:
+      # storing data outside the container's lifecycle
+      - mysql-data:/var/lib/mysql
+      # seeding initial data
+      - ./mysql-init:/docker-entrypoint-initdb.d
+
+  spring-app:
+    # build an image from the Dockerfile in this current folder
+    build: .
+    container_name: library-spring-container
+    restart: unless-stopped
+    # start the mysql container before starting spring-app
+    depends_on:
+      - mysql
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      LIBRARY_DB_PASSWORD: ${LIBRARY_DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+
+volumes:
+  # declaring mysql-data as a named volume
+  mysql-data:

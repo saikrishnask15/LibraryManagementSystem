@@ -1,6 +1,6 @@
 # Library Management System — REST API
 
-A production-grade **Library Management System** built with **Spring Boot 4.0.1** and **Java 25**, featuring JWT-based authentication, role-based access control, tiered memberships, borrow tracking with automated late-fee calculation, and rich filtering/pagination across all resources.
+A production-grade **Library Management System** built with **Spring Boot 3.5.15** and **Java 21**, featuring JWT-based authentication, role-based access control, tiered memberships, borrow tracking with automated late-fee calculation, rich filtering/pagination across all resources, and a fully containerized **Docker** deployment setup.
 
 ---
 
@@ -25,6 +25,7 @@ A production-grade **Library Management System** built with **Spring Boot 4.0.1*
 | **API Documentation** | Interactive Swagger/OpenAPI documentation |
 | **Comprehensive Logging** | Production-ready logging with SLF4J/Logback |
 | **Unit Testing** | 206 tests across 6 service classes — JUnit 5 + Mockito + AssertJ |
+| **Containerized Deployment** | Multi-stage Docker build + Docker Compose orchestration (Spring Boot + MySQL) |
 
 ---
 
@@ -32,18 +33,19 @@ A production-grade **Library Management System** built with **Spring Boot 4.0.1*
 
 | Layer | Technology |
 |-------|-----------|
-| **Framework** | Spring Boot 4.0.1 |
-| **Language** | Java 25 |
+| **Framework** | Spring Boot 3.5.15 |
+| **Language** | Java 21 |
 | **Security** | Spring Security 6 + JWT (jjwt 0.13.0) |
 | **ORM** | Spring Data JPA / Hibernate |
 | **Database** | MySQL 8.0 |
 | **Email** | Spring Boot Mail + Gmail SMTP |
-| **API Docs** | Swagger/OpenAPI 3.0 (springdoc-openapi 2.3.0) |
+| **API Docs** | Swagger/OpenAPI 3.0 (springdoc-openapi 2.8.9) |
 | **Validation** | Jakarta Bean Validation |
 | **Logging** | SLF4J + Logback |
 | **Utilities** | Lombok |
 | **Build Tool** | Maven 3.9+ |
 | **Testing** | JUnit 5 + Mockito + AssertJ |
+| **Containerization** | Docker (multi-stage build) + Docker Compose |
 
 ---
 
@@ -108,6 +110,19 @@ src/main/java/com/example/LibraryManagementSystem/
 │
 └── scheduler/               # Scheduled tasks
     └── BorrowRecordScheduler.java
+```
+
+### Containerization Layout
+
+```
+LibraryManagementSystem/
+│
+├── Dockerfile               # Multi-stage build (Maven build stage → slim JRE runtime stage)
+├── docker-compose.yml        # Orchestrates spring-app + mysql containers
+├── .env                       # Local secrets (gitignored) — DB password, JWT secret, mail password
+├── .env.example                # Template for required environment variables
+├── .dockerignore
+└── mysql-init/                 # Optional .sql seed scripts run on first MySQL startup
 ```
 
 ---
@@ -314,14 +329,71 @@ erDiagram
 
 ## Getting Started
 
+You can run this project in two ways: **with Docker** (recommended — no need to install MySQL or manage local config) or **locally with Maven** (traditional setup).
+
 ### Prerequisites
 
-- **Java 25** (JDK)
-- **Maven 3.9+**
-- **MySQL 8.0+**
-- **Gmail Account** (for email notifications)
+| Approach | Requirements |
+|---|---|
+| **Docker (recommended)** | Docker Desktop installed and running |
+| **Local Maven setup** | Java 21 (JDK), Maven 3.9+, MySQL 8.0+ |
+| **Both** | A Gmail account with an App Password (for email notifications) |
 
-### Installation
+---
+
+### Option A — Run with Docker (Recommended)
+
+This spins up both the Spring Boot app and a MySQL database together, fully isolated from your machine's local environment.
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/saikrishnask15/LibraryManagementSystem.git
+   cd LibraryManagementSystem
+   ```
+
+2. **Create your `.env` file** (copy from the provided template)
+   ```bash
+   cp .env.example .env
+   ```
+   Then fill in your actual secrets:
+   ```env
+   LIBRARY_DB_PASSWORD=your_mysql_password
+   JWT_SECRET=your_jwt_secret_key
+   MAIL_PASSWORD=your_gmail_app_password
+   ```
+   > `.env` is gitignored — your secrets never get committed.
+
+3. **Build and start the containers**
+   ```bash
+   docker compose up -d --build
+   ```
+   This will:
+   - Build the Spring Boot app image using the multi-stage `Dockerfile`
+   - Pull and start a `mysql:8.0` container, auto-creating the `library_db` database
+   - Wait for MySQL to become healthy before starting the Spring Boot container
+   - Run both containers in detached mode
+
+4. **Verify everything is running**
+   ```bash
+   docker compose ps
+   ```
+   Both `library-mysql-container` and `library-spring-container` should show status `Up`.
+
+5. **Access the application**
+   - **API Base URL:** `http://localhost:8080`
+   - **Swagger UI:** `http://localhost:8080/swagger-ui.html`
+   - **API Docs:** `http://localhost:8080/api-docs`
+   - **MySQL (host access):** `localhost:3307` (mapped from container's internal `3306`)
+
+6. **View logs / stop the containers**
+   ```bash
+   docker compose logs -f spring-app   # follow Spring Boot logs
+   docker compose down                  # stop and remove containers
+   ```
+
+---
+
+### Option B — Run Locally with Maven
 
 1. **Clone the repository**
    ```bash
@@ -334,14 +406,18 @@ erDiagram
    CREATE DATABASE library_db;
    ```
 
-3. **Configure application**
+3. **Configure environment-specific properties**
 
-   Update `src/main/resources/application.properties`:
+   This project uses Spring profiles. Local development settings live in:
+   ```
+   src/main/resources/application-dev.properties
+   ```
+   Set `SPRING_PROFILES_ACTIVE=dev` (or pass `-Dspring.profiles.active=dev`) and configure:
    ```properties
    # Database
    spring.datasource.url=jdbc:mysql://localhost:3306/library_db
    spring.datasource.username=root
-   spring.datasource.password=your_password
+   spring.datasource.password=${LIBRARY_DB_PASSWORD}
 
    # JPA
    spring.jpa.hibernate.ddl-auto=update
@@ -349,14 +425,14 @@ erDiagram
    spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
 
    # JWT
-   jwt.secret=your-secret-key-here
+   jwt.secret=${JWT_SECRET}
    jwt.expiration=86400000
 
    # Email
    spring.mail.host=smtp.gmail.com
    spring.mail.port=587
-   spring.mail.username=your-email@gmail.com
-   spring.mail.password=your-gmail-app-password
+   spring.mail.username=${MAIL_USERNAME}
+   spring.mail.password=${MAIL_PASSWORD}
    spring.mail.properties.mail.smtp.auth=true
    spring.mail.properties.mail.smtp.starttls.enable=true
    app.email.from=Library System <your-email@gmail.com>
@@ -365,6 +441,13 @@ erDiagram
    # Swagger
    springdoc.swagger-ui.path=/swagger-ui.html
    springdoc.api-docs.path=/api-docs
+   ```
+
+   Set the actual secrets as environment variables (don't hardcode them):
+   ```bash
+   export LIBRARY_DB_PASSWORD=your_password
+   export JWT_SECRET=your_jwt_secret
+   export MAIL_PASSWORD=your_gmail_app_password
    ```
 
 4. **Build and run**
@@ -377,6 +460,43 @@ erDiagram
    - **API Base URL:** `http://localhost:8080`
    - **Swagger UI:** `http://localhost:8080/swagger-ui.html`
    - **API Docs:** `http://localhost:8080/api-docs`
+
+---
+
+## Docker Architecture
+
+The project ships with a **multi-stage Dockerfile** and a **Docker Compose** setup for full-stack local orchestration.
+
+### Dockerfile (Multi-Stage Build)
+
+| Stage | Base Image | Purpose |
+|---|---|---|
+| **Build stage** | `maven:3.9-eclipse-temurin-21-alpine` | Compiles the project and packages the JAR — discarded after build |
+| **Run stage** | `eclipse-temurin:21-jre-alpine` | Minimal runtime image containing only the JRE + final JAR |
+
+Key practices applied:
+- **Dependency caching** — `pom.xml` is copied and dependencies downloaded *before* copying source code, so unrelated code changes don't trigger a full re-download
+- **Non-root execution** — the app runs as a dedicated `spring` system user, not `root`, reducing the container's attack surface
+- **Small final image** — using a JRE (not JDK) Alpine base for the runtime stage keeps the image lightweight
+
+### docker-compose.yml
+
+| Service | Image | Notes |
+|---|---|---|
+| `mysql` | `mysql:8.0` | Persists data via the named volume `mysql-data`; supports optional seed scripts via `./mysql-init` |
+| `spring-app` | Built from local `Dockerfile` | Depends on `mysql`; configured via environment variables sourced from `.env` |
+
+### Environment Variables
+
+All secrets are injected at runtime via a `.env` file (never committed) and consumed by both `docker-compose.yml` and Spring's `application-dev.properties`:
+
+| Variable | Used By | Purpose |
+|---|---|---|
+| `LIBRARY_DB_PASSWORD` | MySQL container + Spring datasource | Database root password |
+| `JWT_SECRET` | Spring Security / JWT util | Signing key for JWT tokens |
+| `MAIL_PASSWORD` | Spring Mail | Gmail App Password for SMTP |
+
+A `.env.example` file is included as a template — copy it to `.env` and fill in real values before running.
 
 ---
 
@@ -465,6 +585,7 @@ erDiagram
 - **Global Exception Handling** — Secure error responses
 - **Input Validation** — Bean validation with custom messages
 - **Security Logging** — Track failed logins, access violations
+- **Secrets Management** — Sensitive credentials (DB password, JWT secret, mail password) injected via environment variables, never hardcoded or committed
 
 ---
 
@@ -478,6 +599,7 @@ erDiagram
 - **2 Scheduled Tasks** for automation
 - **206 Unit Tests** across 6 service classes
 - **100% Service Layer** test coverage
+- **Multi-stage Docker build** for a lean, production-ready container image
 
 ---
 

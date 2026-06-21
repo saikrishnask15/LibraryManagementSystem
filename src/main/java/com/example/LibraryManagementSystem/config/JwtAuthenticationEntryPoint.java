@@ -1,11 +1,10 @@
 package com.example.LibraryManagementSystem.config;
 
 import com.example.LibraryManagementSystem.exception.ErrorResponse;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
@@ -19,10 +18,13 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint { //@restcontrolleradvice can only handle exceptions at controller, AuthenticationEntryPoint handles exception at security level (before the controller)
 
    private final ObjectMapper objectMapper;
+
+    public JwtAuthenticationEntryPoint(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void commence(HttpServletRequest request,

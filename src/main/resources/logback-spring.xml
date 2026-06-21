@@ -12,6 +12,15 @@
         </encoder>
     </appender>
 
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <logger name="org.hibernate" level="WARN" />
+    <logger name="org.springframework.boot.autoconfigure" level="WARN" />
+
+<!--    it won't work in docker-->
+    <springProfile name="!dev">
 <!-- 2.   file settings: setting to debug-->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/library-management.log</file>
@@ -32,7 +41,6 @@
     <!--3.  APPLY LEVELS -->
     <!-- Logging everything at INFO to the Console -->
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>
 
@@ -40,7 +48,5 @@
     <logger name="com.example.LibraryManagementSystem" level="DEBUG" additivity="false">
         <appender-ref ref="FILE"/>
     </logger>
-
-    <logger name="org.hibernate" level="WARN" />
-    <logger name="org.springframework.boot.autoconfigure" level="WARN" />
+    </springProfile>
 </configuration>
